@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -15,16 +16,21 @@ const { globalRateLimit } = require("./middleware/rateLimit");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const drawRoutes = require("./routes/drawRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 
 const app = express();
 
-// Trust proxy (needed for rate-limit + correct IPs behind Render/Vercel/etc.)
 app.set("trust proxy", 1);
 
-// Security headers
-app.use(helmet());
+// helmet — relax crossOriginResourcePolicy so uploaded images can be embedded by client
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
-// CORS — allow both player and admin clients
 const allowedOrigins = [process.env.CLIENT_URL, process.env.ADMIN_URL].filter(Boolean);
 app.use(
   cors({
@@ -36,28 +42,27 @@ app.use(
   })
 );
 
-// Body parsing
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
-
-// NoSQL injection protection
 app.use(mongoSanitize());
 
-// Request logging (dev only)
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-// Global rate limit
 app.use("/api", globalRateLimit);
+
+// Serve uploaded files (receipts) — auth-gated to admins in future; public for now
+// Note: filenames are unguessable (16-char hex + timestamp) so direct enumeration is hard.
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Health
 app.get("/", (req, res) => {
   res.json({
     status: "running",
     service: "luckyet-api",
-    version: "0.1.0",
+    version: "0.2.0",
     timestamp: new Date().toISOString(),
   });
 });
@@ -66,6 +71,9 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/draws", drawRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // 404
 app.use((req, res) => {

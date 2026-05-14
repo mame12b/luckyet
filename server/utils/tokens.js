@@ -1,32 +1,32 @@
-module.exports = (err, req, res, next) => {
-  console.error(`[${new Date().toISOString()}] ${err.stack || err.message}`);
 
-  // Mongoose validation
-  if (err.name === "ValidationError") {
-    return res.status(400).json({
-      message: "Validation failed",
-      errors: Object.values(err.errors).map((e) => ({
-        field: e.path,
-        message: e.message,
-      })),
-    });
-  }
+const jwt = require("jsonwebtoken");
 
-  // Mongoose duplicate key
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyPattern)[0];
-    return res.status(409).json({
-      message: `${field} already in use`,
-    });
-  }
-
-  // Mongoose cast error (bad ObjectId)
-  if (err.name === "CastError") {
-    return res.status(400).json({ message: "Invalid ID format" });
-  }
-
-  res.status(err.statusCode || 500).json({
-    message: err.message || "Internal server error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+function signAccessToken(userId, role) {
+  return jwt.sign({ userId, role }, process.env.JWT_ACCESS_SECRET, {
+    expiresIn: process.env.JWT_ACCESS_EXPIRES || "15m",
   });
+}
+
+function signRefreshToken(userId) {
+  return jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES || "7d",
+  });
+}
+
+function verifyRefreshToken(token) {
+  return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+}
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+module.exports = {
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  cookieOptions,
 };
