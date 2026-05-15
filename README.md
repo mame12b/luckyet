@@ -57,7 +57,3 @@ npm run dev
 - `streamer` — has promo code, earns commission
 - `admin` — verifies payments, manages draws
 - `super_admin` — manages everything
-
-## ⚠ Legal
-
-Lottery operation requires NLA licensing. This codebase is the technical platform — legal compliance is your responsibility.
