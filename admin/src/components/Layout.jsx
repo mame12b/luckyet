@@ -1,26 +1,32 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
 
 const NAV = [
   { to: "/", label: "Overview", icon: "▦" },
-  { to: "/payments/pending", label: "Pending payments", icon: "◔", badge: true },
+  { to: "/payments/pending", label: "Pending payments", icon: "◔" },
   { to: "/payments", label: "All payments", icon: "≡" },
-  { to: "/draws", label: "Draws", icon: "★", disabled: true },
-  { to: "/settings", label: "Settings", icon: "⚙", disabled: true },
+  { to: "/draws", label: "Draws", icon: "★" },
+  { to: "/settings", label: "Settings", icon: "⚙" },
 ];
 
 export default function Layout({ children }) {
   const { user, clear } = useAuthStore();
   const nav = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = () => {
     clear();
     nav("/login");
   };
 
+  // Custom active check — /draws should also light up on /draws/:id and /draws/new
+  const isActive = (to) => {
+    if (to === "/") return location.pathname === "/";
+    return location.pathname === to || location.pathname.startsWith(to + "/");
+  };
+
   return (
     <div className="min-h-screen flex bg-surface">
-      {/* Sidebar */}
       <aside className="w-60 bg-white border-r border-border flex flex-col">
         <div className="px-5 py-4 border-b border-border">
           <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
@@ -34,25 +40,18 @@ export default function Layout({ children }) {
 
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {NAV.map((item) => (
-            <NavLink
+            <Link
               key={item.to}
               to={item.to}
-              end={item.to === "/"}
-              onClick={(e) => item.disabled && e.preventDefault()}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition ${
-                  item.disabled
-                    ? "text-text-faint cursor-not-allowed"
-                    : isActive
-                    ? "bg-brand-light text-brand font-medium"
-                    : "text-text-muted hover:bg-surface hover:text-text"
-                }`
-              }
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition ${
+                isActive(item.to)
+                  ? "bg-brand-light text-brand font-medium"
+                  : "text-text-muted hover:bg-surface hover:text-text"
+              }`}
             >
               <span className="w-4 text-center text-xs opacity-60">{item.icon}</span>
               <span className="flex-1">{item.label}</span>
-              {item.disabled && <span className="text-[9px] uppercase text-text-faint">soon</span>}
-            </NavLink>
+            </Link>
           ))}
         </nav>
 
@@ -75,7 +74,6 @@ export default function Layout({ children }) {
         </div>
       </aside>
 
-      {/* Main */}
       <main className="flex-1 overflow-auto">
         <div className="max-w-7xl mx-auto px-8 py-8">{children}</div>
       </main>
