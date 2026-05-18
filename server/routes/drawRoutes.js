@@ -1,9 +1,13 @@
 const router = require("express").Router();
-const ctrl = require("../controllers/drawController");
+const drawCtrl = require("../controllers/drawController");
+const winnerCtrl = require("../controllers/winnerController");
 
 // Public
-router.get("/", ctrl.listActive);
-router.get("/past", ctrl.listPastDraws);
-router.get("/slug/:slug", ctrl.getBySlug);
+router.get("/", drawCtrl.listActive);
+router.get("/results", winnerCtrl.listResults);
+router.get("/results/:slug", winnerCtrl.getProof);
+router.get("/past", drawCtrl.listPastDraws);
+router.get("/slug/:slug", drawCtrl.getBySlug);
+router.get("/slug/:slug/live-state", winnerCtrl.getLiveState);
 
 module.exports = router;

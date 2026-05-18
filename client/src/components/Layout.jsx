@@ -41,6 +41,9 @@ export default function Layout({ children }) {
             <NavLink to="/draws" className={({ isActive }) => isActive ? "text-brand-dark" : "text-text hover:text-brand-dark"}>
               Buy Lotteries
             </NavLink>
+            <NavLink to="/results" className={({ isActive }) => isActive ? "text-brand-dark" : "text-text hover:text-brand-dark"}>
+              Results
+            </NavLink>
             <NavLink to="/how-it-works" className={({ isActive }) => isActive ? "text-brand-dark" : "text-text hover:text-brand-dark"}>
               How it Works
             </NavLink>

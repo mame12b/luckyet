@@ -19,6 +19,7 @@ const drawRoutes = require("./routes/drawRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const streamerRoutes = require("./routes/streamerRoutes");
 
 const app = express();
 
@@ -74,6 +75,7 @@ app.use("/api/draws", drawRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/streamers", streamerRoutes);
 
 // 404
 app.use((req, res) => {
