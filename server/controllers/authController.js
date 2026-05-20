@@ -4,7 +4,8 @@ const {
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
-  cookieOptions,
+  cookieOptionsFor,
+  policyFor,
 } = require("../utils/tokens");
 const { logAudit } = require("../services/auditService");
 
@@ -35,10 +36,10 @@ exports.register = async (req, res, next) => {
       referredByCode: referrer ? referredByCode.toUpperCase() : undefined,
     });
 
-    const accessToken = signAccessToken(user._id, user.role);
-    const refreshToken = signRefreshToken(user._id);
+const accessToken = signAccessToken(user._id, user.role);
+const refreshToken = signRefreshToken(user._id, user.role);
 
-    res.cookie("refreshToken", refreshToken, cookieOptions);
+res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
 
     await logAudit({
       actorId: user._id,
@@ -93,10 +94,10 @@ exports.login = async (req, res, next) => {
     user.lastLoginIp = req.ip;
     await user.save();
 
-    const accessToken = signAccessToken(user._id, user.role);
-    const refreshToken = signRefreshToken(user._id);
+const accessToken = signAccessToken(user._id, user.role);
+const refreshToken = signRefreshToken(user._id, user.role);
 
-    res.cookie("refreshToken", refreshToken, cookieOptions);
+res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
 
     await logAudit({
       actorId: user._id,
@@ -122,7 +123,26 @@ exports.refresh = async (req, res, next) => {
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) return res.status(401).json({ message: "Invalid session" });
 
+    // ENFORCE IDLE TIMEOUT: no activity for X minutes → kick out
+    const policy = policyFor(user.role);
+    const now = Date.now();
+    const lastActivity = decoded.lastActivityAt || decoded.iat * 1000;
+    const idle = now - lastActivity;
+
+    if (idle > policy.idleTimeoutMs) {
+      // Clear the cookie so the client knows to log in again
+      res.clearCookie("refreshToken", cookieOptionsFor(user.role));
+      return res.status(401).json({
+        message: "Session expired due to inactivity. Please sign in again.",
+        code: "IDLE_TIMEOUT",
+      });
+    }
+
+    // Mint new tokens and update lastActivityAt
     const accessToken = signAccessToken(user._id, user.role);
+    const refreshToken = signRefreshToken(user._id, user.role);
+    res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
+
     res.json({ accessToken });
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired refresh token" });
@@ -130,7 +150,12 @@ exports.refresh = async (req, res, next) => {
 };
 
 exports.logout = async (req, res) => {
-  res.clearCookie("refreshToken", cookieOptions);
+  // Clear with default options — works regardless of role
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
   res.json({ message: "Logged out" });
 };
 

@@ -23,6 +23,20 @@ export default function Layout({ children }) {
     nav("/");
   };
 
+  // Listen for session-expired event from API interceptor
+useEffect(() => {
+  const handler = (e) => {
+    const reason = e.detail?.reason;
+    const msg = reason === "idle"
+      ? "Signed out due to inactivity. Please sign in again."
+      : "Your session expired. Please sign in again.";
+    alert(msg);
+    nav("/login");
+  };
+  window.addEventListener("session-expired", handler);
+  return () => window.removeEventListener("session-expired", handler);
+}, [nav]);
+
   return (
     <div className="min-h-screen flex flex-col bg-bg text-text">
       {/* Top promo bar */}

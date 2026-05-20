@@ -1,3 +1,4 @@
+
 import axios from "axios";
 import { useAuthStore } from "../store/auth";
 
@@ -17,9 +18,18 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
+    const status = err.response?.status;
+    const code = err.response?.data?.code;
+
+    if (status === 401 && code === "IDLE_TIMEOUT") {
+      useAuthStore.getState().clear();
+      window.dispatchEvent(new CustomEvent("session-expired", { detail: { reason: "idle" } }));
+      return Promise.reject(err);
+    }
+
     if (
-      err.response?.status === 401 &&
-      err.response?.data?.code === "TOKEN_EXPIRED" &&
+      status === 401 &&
+      code === "TOKEN_EXPIRED" &&
       !original._retry
     ) {
       original._retry = true;
@@ -37,6 +47,7 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         refreshing = null;
         useAuthStore.getState().clear();
+        window.dispatchEvent(new CustomEvent("session-expired", { detail: { reason: "expired" } }));
         window.location.href = "/login";
         return Promise.reject(refreshErr);
       }
@@ -47,7 +58,6 @@ api.interceptors.response.use(
 
 export default api;
 
-// Helper to convert relative receipt URLs to full URLs
 export const fileUrl = (path) => {
   if (!path) return null;
   if (path.startsWith("http")) return path;
