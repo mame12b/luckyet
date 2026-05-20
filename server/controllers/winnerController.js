@@ -10,15 +10,13 @@ const ANIMATION_DURATION_MS = 20000;
 /**
  * Admin: start the live broadcast + run the quantum draw.
  *
- * Flow:
- *   1. Validate state
- *   2. Run the quantum draw IMMEDIATELY (the math is done before animation)
- *   3. Mark draw status = "drawing" with startedAt = now
- *   4. Wait for animation duration (in DB state, not blocking the request)
- *   5. After duration elapses, viewers poll /live-state and see the result
+ * For multi-tier draws:
+ *   - tiers are picked in REVERSE order in terms of selection (we pick tier 1 first,
+ *     but the BROADCAST reveals them in reverse for suspense — 3rd → 2nd → 1st)
+ *   - each tier uses fresh quantum bytes from a fresh API call
+ *   - winning tickets are removed from the eligible pool before the next pick
  *
- * The animation is dramatic presentation of an already-determined result.
- * The live-state endpoint reveals the winner only AFTER the animation ends.
+ * The winners list ends up sorted by tier ascending (tier 1 = grand prize).
  */
 exports.startDraw = async (req, res, next) => {
   const session = await mongoose.startSession();
@@ -43,45 +41,97 @@ exports.startDraw = async (req, res, next) => {
       });
     }
 
-    const tickets = await Ticket.find({ drawId: draw._id, status: "active" })
+    // Determine prize tiers (multi-tier or legacy single)
+    const prizes = draw.prizes?.length
+      ? [...draw.prizes].sort((a, b) => a.tier - b.tier)
+      : [{
+          tier: 1,
+          name: draw.prizeName,
+          description: draw.prizeDescription,
+          imageUrl: draw.prizeImages?.[0],
+          estimatedValueETB: draw.prizeEstimatedValueETB,
+        }];
+
+    // Get all active tickets, sorted deterministically
+    let eligibleTickets = await Ticket.find({ drawId: draw._id, status: "active" })
       .sort({ ticketNumber: 1 })
       .session(session);
 
-    if (tickets.length === 0) {
+    if (eligibleTickets.length === 0) {
       await session.abortTransaction();
       return res.status(400).json({ message: "No active tickets in this draw" });
     }
 
-    // === DO THE ACTUAL QUANTUM DRAW NOW (before animation) ===
-    const { index, proof } = await selectWinnerIndex(tickets.length);
-    const winningTicket = tickets[index];
+    if (eligibleTickets.length < prizes.length) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: `Not enough tickets (${eligibleTickets.length}) for ${prizes.length} prize tiers. Need at least one ticket per tier.`,
+      });
+    }
 
-    // Mark winning ticket
-    winningTicket.status = "won";
-    await winningTicket.save({ session });
+    // === RUN THE DRAW: pick one winner per tier, removing them between picks ===
+    const winners = [];
+    const wonTicketIds = new Set();
 
-    // Mark all other tickets lost
+    for (const prize of prizes) {
+      // Re-sort eligible tickets (excluding already-won) for deterministic indexing
+      const pool = eligibleTickets.filter((t) => !wonTicketIds.has(t._id.toString()));
+
+      if (pool.length === 0) {
+        // Edge case: somehow ran out (shouldn't happen due to length check above)
+        break;
+      }
+
+      // Fetch fresh quantum bytes for THIS tier
+      const { index, proof } = await selectWinnerIndex(pool.length);
+      const winningTicket = pool[index];
+      wonTicketIds.add(winningTicket._id.toString());
+
+      // Mark ticket won
+      winningTicket.status = "won";
+      await winningTicket.save({ session });
+
+      winners.push({
+        tier: prize.tier,
+        ticketId: winningTicket._id,
+        userId: winningTicket.userId,
+        quantumProof: {
+          seed: proof.seed,
+          apiResponseHash: proof.apiResponseHash,
+          algorithm: proof.algorithm,
+          algorithmDescription: proof.algorithmDescription,
+          source: proof.source,
+          sourceLabel: proof.sourceLabel,
+          sourceAttempts: proof.sourceAttempts,
+          selectedIndex: proof.selectedIndex,
+          totalEligibleAtPick: pool.length,
+          drawnAt: proof.drawnAt,
+        },
+      });
+    }
+
+    // Mark all other tickets as lost
     await Ticket.updateMany(
-      { drawId: draw._id, _id: { $ne: winningTicket._id }, status: "active" },
+      { drawId: draw._id, _id: { $nin: Array.from(wonTicketIds) }, status: "active" },
       { $set: { status: "lost" } },
       { session }
     );
 
-    // Prepare a sample of ticket numbers for the animation
-    // (these flash during the slot machine spin — must include the real winner
-    // somewhere in the list so the reveal feels honest)
-    const sampleSize = Math.min(40, tickets.length);
-    const shuffled = [...tickets].sort(() => Math.random() - 0.5).slice(0, sampleSize);
+    // Prepare sample ticket numbers for the animation
+    const sampleSize = Math.min(40, eligibleTickets.length);
+    const shuffled = [...eligibleTickets].sort(() => Math.random() - 0.5).slice(0, sampleSize);
     const sampleTicketNumbers = shuffled.map((t) => t.ticketNumber);
-    // Ensure winning ticket is in the sample
-    if (!sampleTicketNumbers.includes(winningTicket.ticketNumber)) {
-      sampleTicketNumbers.push(winningTicket.ticketNumber);
+    // Ensure all winning tickets are in the sample
+    for (const w of winners) {
+      const ticket = eligibleTickets.find((t) => t._id.toString() === w.ticketId.toString());
+      if (ticket && !sampleTicketNumbers.includes(ticket.ticketNumber)) {
+        sampleTicketNumbers.push(ticket.ticketNumber);
+      }
     }
 
-    // Set draw to "drawing" status with animation start time
+    // Update draw
     draw.status = "drawing";
-    draw.winnerTicketId = winningTicket._id;
-    draw.winnerUserId = winningTicket.userId;
+    draw.winners = winners;
     draw.drawnBy = req.user.id;
     draw.drawAnimation = {
       startedAt: new Date(),
@@ -89,17 +139,18 @@ exports.startDraw = async (req, res, next) => {
       phase: "running",
       sampleTicketNumbers,
     };
-    draw.quantumProof = {
-      seed: proof.seed,
-      apiResponseHash: proof.apiResponseHash,
-      algorithm: proof.algorithm,
-      algorithmDescription: proof.algorithmDescription,
-      selectedIndex: proof.selectedIndex,
-      totalTicketsAtDraw: proof.totalTicketsAtDraw,
-      drawnAt: proof.drawnAt,
-    };
-    await draw.save({ session });
 
+    // Also populate legacy single-winner fields if this is a 1-prize draw
+    if (winners.length === 1) {
+      draw.winnerTicketId = winners[0].ticketId;
+      draw.winnerUserId = winners[0].userId;
+      draw.quantumProof = {
+        ...winners[0].quantumProof,
+        totalTicketsAtDraw: winners[0].quantumProof.totalEligibleAtPick,
+      };
+    }
+
+    await draw.save({ session });
     await session.commitTransaction();
 
     await logAudit({
@@ -109,15 +160,14 @@ exports.startDraw = async (req, res, next) => {
       targetType: "Draw",
       targetId: draw._id,
       metadata: {
-        winningTicketNumber: winningTicket.ticketNumber,
-        totalTickets: tickets.length,
-        selectedIndex: index,
+        tiers: winners.length,
+        totalTickets: eligibleTickets.length,
+        sources: winners.map((w) => w.quantumProof.source),
       },
       req,
     });
 
-    // Schedule the transition to "drawn" status after animation duration
-    // (so the public live-state endpoint can reveal the winner safely)
+    // Schedule status transition to "drawn"
     setTimeout(async () => {
       try {
         await Draw.findByIdAndUpdate(draw._id, {
@@ -130,48 +180,81 @@ exports.startDraw = async (req, res, next) => {
     }, ANIMATION_DURATION_MS + 1000);
 
     res.json({
-      message: "Broadcast started. Animation will run for " + ANIMATION_DURATION_MS + "ms.",
+      message: "Broadcast started.",
       drawSlug: draw.slug,
       liveUrl: `/draws/${draw.slug}/live`,
       startedAt: draw.drawAnimation.startedAt,
       durationMs: ANIMATION_DURATION_MS,
+      tierCount: winners.length,
     });
   } catch (err) {
-    await session.abortTransaction();
-    console.error("Draw failed:", err);
+    try { await session.abortTransaction(); } catch {}
+    console.error("=== DRAW FAILED ===");
+    console.error("Message:", err.message);
+    console.error("Stack:", err.stack);
+    console.error("===================");
     res.status(500).json({
       message: "Draw failed: " + err.message,
-      hint: err.message.includes("Quantum")
-        ? "Quantum API unreachable. ANU may be down. Try again in a minute. No fallback was used."
-        : null,
+      detail: err.stack?.split("\n").slice(0, 5).join("\n"),
     });
   } finally {
     session.endSession();
   }
 };
 
+// Helper: anonymize a winner record for public display
+function anonymizeWinner(user) {
+  if (!user) return null;
+  const parts = user.fullName?.split(" ") || ["Anonymous"];
+  const first = parts[0];
+  const lastInitial = parts[1] ? parts[1].charAt(0).toUpperCase() + "." : "";
+  return {
+    displayName: `${first} ${lastInitial}`.trim(),
+    country: user.country,
+  };
+}
+
 /**
  * Public: poll-able state for the live broadcast page.
- * Returns the current animation phase + (only after animation ends) the winner.
  */
 exports.getLiveState = async (req, res, next) => {
   try {
     const draw = await Draw.findOne({ slug: req.params.slug })
+      .populate("winners.userId", "fullName country")
+      .populate("winners.ticketId", "ticketNumber")
       .populate("winnerUserId", "fullName country")
       .populate("winnerTicketId", "ticketNumber");
 
     if (!draw) return res.status(404).json({ message: "Draw not found" });
 
+    const effectivePrizes = draw.prizes?.length
+      ? [...draw.prizes].sort((a, b) => a.tier - b.tier)
+      : [{
+          tier: 1,
+          name: draw.prizeName,
+          description: draw.prizeDescription,
+          imageUrl: draw.prizeImages?.[0],
+          estimatedValueETB: draw.prizeEstimatedValueETB,
+        }];
+
     const obj = {
       slug: draw.slug,
       title: draw.title,
-      prizeName: draw.prizeName,
-      prizeImages: draw.prizeImages,
+      prizes: effectivePrizes,
       ticketsSold: draw.ticketsSold,
       status: draw.status,
       animation: null,
-      winner: null,
+      winners: null,
     };
+
+    // Sort winners by tier ascending (tier 1 = grand prize)
+    const sortedWinners = (draw.winners || []).sort((a, b) => a.tier - b.tier);
+
+    const buildWinnersList = () => sortedWinners.map((w) => ({
+      tier: w.tier,
+      ticketNumber: w.ticketId?.ticketNumber,
+      ...anonymizeWinner(w.userId),
+    }));
 
     if (draw.status === "drawing" && draw.drawAnimation?.startedAt) {
       const elapsed = Date.now() - new Date(draw.drawAnimation.startedAt).getTime();
@@ -182,28 +265,14 @@ exports.getLiveState = async (req, res, next) => {
         elapsedMs: elapsed,
         progress: Math.min(1, elapsed / duration),
         sampleTicketNumbers: draw.drawAnimation.sampleTicketNumbers || [],
+        tierCount: sortedWinners.length,
       };
 
-      // Only reveal winner if animation finished
       if (elapsed >= duration) {
-        const parts = draw.winnerUserId?.fullName?.split(" ") || ["Anonymous"];
-        const first = parts[0];
-        const lastInitial = parts[1] ? parts[1].charAt(0).toUpperCase() + "." : "";
-        obj.winner = {
-          ticketNumber: draw.winnerTicketId?.ticketNumber,
-          displayName: `${first} ${lastInitial}`.trim(),
-          country: draw.winnerUserId?.country,
-        };
+        obj.winners = buildWinnersList();
       }
     } else if (draw.status === "drawn") {
-      const parts = draw.winnerUserId?.fullName?.split(" ") || ["Anonymous"];
-      const first = parts[0];
-      const lastInitial = parts[1] ? parts[1].charAt(0).toUpperCase() + "." : "";
-      obj.winner = {
-        ticketNumber: draw.winnerTicketId?.ticketNumber,
-        displayName: `${first} ${lastInitial}`.trim(),
-        country: draw.winnerUserId?.country,
-      };
+      obj.winners = buildWinnersList();
     }
 
     res.json(obj);
@@ -213,29 +282,45 @@ exports.getLiveState = async (req, res, next) => {
 };
 
 /**
- * Public: list completed draws.
+ * Public: list completed draws (results page).
  */
 exports.listResults = async (req, res, next) => {
   try {
     const draws = await Draw.find({ status: "drawn" })
-      .sort({ "quantumProof.drawnAt": -1 })
+      .sort({ "drawAnimation.startedAt": -1 })
       .limit(100)
+      .populate("winners.userId", "fullName country")
+      .populate("winners.ticketId", "ticketNumber")
       .populate("winnerUserId", "fullName country")
-      .populate("winnerTicketId", "ticketNumber")
-      .select("title slug prizeName prizeImages prizeEstimatedValueETB ticketPriceETB ticketPoolSize ticketsSold endDate drawDate quantumProof winnerTicketId winnerUserId");
+      .populate("winnerTicketId", "ticketNumber");
 
     const sanitized = draws.map((d) => {
       const obj = d.toJSON();
-      if (obj.winnerUserId) {
-        const parts = obj.winnerUserId.fullName?.split(" ") || ["Anonymous"];
-        const first = parts[0];
-        const lastInitial = parts[1] ? parts[1].charAt(0).toUpperCase() + "." : "";
-        obj.winnerUserId = {
-          displayName: `${first} ${lastInitial}`.trim(),
-          country: obj.winnerUserId.country,
-        };
-      }
-      return obj;
+      const effectivePrizes = obj.prizes?.length
+        ? [...obj.prizes].sort((a, b) => a.tier - b.tier)
+        : [{
+            tier: 1,
+            name: obj.prizeName,
+            imageUrl: obj.prizeImages?.[0],
+            estimatedValueETB: obj.prizeEstimatedValueETB,
+          }];
+
+      const sortedWinners = (obj.winners || []).sort((a, b) => a.tier - b.tier);
+      return {
+        _id: obj._id,
+        slug: obj.slug,
+        title: obj.title,
+        ticketPriceETB: obj.ticketPriceETB,
+        ticketsSold: obj.ticketsSold,
+        endDate: obj.endDate,
+        prizes: effectivePrizes,
+        winners: sortedWinners.map((w) => ({
+          tier: w.tier,
+          ticketNumber: w.ticketId?.ticketNumber,
+          ...anonymizeWinner(w.userId),
+          drawnAt: w.quantumProof?.drawnAt,
+        })),
+      };
     });
 
     res.json({ draws: sanitized });
@@ -250,21 +335,44 @@ exports.listResults = async (req, res, next) => {
 exports.getProof = async (req, res, next) => {
   try {
     const draw = await Draw.findOne({ slug: req.params.slug, status: "drawn" })
+      .populate("winners.userId", "fullName country")
+      .populate("winners.ticketId", "ticketNumber")
       .populate("winnerUserId", "fullName country")
       .populate("winnerTicketId", "ticketNumber");
 
     if (!draw) return res.status(404).json({ message: "Draw result not found" });
 
     const obj = draw.toJSON();
-    if (obj.winnerUserId) {
-      const parts = obj.winnerUserId.fullName?.split(" ") || ["Anonymous"];
-      const first = parts[0];
-      const lastInitial = parts[1] ? parts[1].charAt(0).toUpperCase() + "." : "";
-      obj.winnerUserId = {
-        displayName: `${first} ${lastInitial}`.trim(),
-        country: obj.winnerUserId.country,
-      };
+
+    // Normalize prizes
+    obj.prizes = obj.prizes?.length
+      ? [...obj.prizes].sort((a, b) => a.tier - b.tier)
+      : [{
+          tier: 1,
+          name: obj.prizeName,
+          description: obj.prizeDescription,
+          imageUrl: obj.prizeImages?.[0],
+          estimatedValueETB: obj.prizeEstimatedValueETB,
+        }];
+
+    // Normalize winners (legacy → array)
+    if ((!obj.winners || obj.winners.length === 0) && obj.winnerTicketId) {
+      obj.winners = [{
+        tier: 1,
+        ticketId: obj.winnerTicketId,
+        userId: obj.winnerUserId,
+        quantumProof: { ...obj.quantumProof, totalEligibleAtPick: obj.quantumProof?.totalTicketsAtDraw },
+      }];
     }
+
+    obj.winners = (obj.winners || [])
+      .sort((a, b) => a.tier - b.tier)
+      .map((w) => ({
+        tier: w.tier,
+        ticketNumber: w.ticketId?.ticketNumber,
+        ...anonymizeWinner(w.userId),
+        quantumProof: w.quantumProof,
+      }));
 
     res.json({ draw: obj });
   } catch (err) {

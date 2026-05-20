@@ -1,6 +1,9 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../lib/api";
+
+const EMPTY_PRIZE = { name: "", description: "", estimatedValueETB: "", imageUrl: "" };
 
 export default function DrawCreate() {
   const nav = useNavigate();
@@ -8,15 +11,13 @@ export default function DrawCreate() {
     title: "",
     slug: "",
     description: "",
-    prizeName: "",
-    prizeDescription: "",
-    prizeEstimatedValueETB: "",
     ticketPriceETB: "",
     ticketPoolSize: "",
     startDate: "",
     endDate: "",
     drawDate: "",
   });
+  const [prizes, setPrizes] = useState([{ ...EMPTY_PRIZE }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState([]);
@@ -27,7 +28,6 @@ export default function DrawCreate() {
     setForm({ ...form, [k]: value });
   };
 
-  // Auto-generate slug from title
   const onTitleChange = (e) => {
     const title = e.target.value;
     const autoSlug = title
@@ -39,6 +39,22 @@ export default function DrawCreate() {
     setForm({ ...form, title, slug: form.slug || autoSlug });
   };
 
+  const updatePrize = (idx, field, value) => {
+    setPrizes((prev) => prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p)));
+  };
+
+  const addPrize = () => {
+    if (prizes.length >= 5) return;
+    setPrizes([...prizes, { ...EMPTY_PRIZE }]);
+  };
+
+  const removePrize = (idx) => {
+    if (prizes.length === 1) return;
+    setPrizes(prizes.filter((_, i) => i !== idx));
+  };
+
+  const totalPrizeValue = prizes.reduce((sum, p) => sum + (Number(p.estimatedValueETB) || 0), 0);
+
   const submit = async (e) => {
     e.preventDefault();
     setError("");
@@ -46,28 +62,45 @@ export default function DrawCreate() {
     setSubmitting(true);
 
     try {
+      // Validate prizes have required fields
+      const cleanPrizes = prizes.map((p, idx) => {
+        if (!p.name?.trim()) throw new Error(`Tier ${idx + 1}: prize name is required`);
+        if (!p.estimatedValueETB || Number(p.estimatedValueETB) <= 0) {
+          throw new Error(`Tier ${idx + 1}: prize value must be greater than 0`);
+        }
+        return {
+          tier: idx + 1,
+          name: p.name.trim(),
+          description: p.description?.trim() || undefined,
+          estimatedValueETB: Number(p.estimatedValueETB),
+          imageUrl: p.imageUrl?.trim() || undefined,
+        };
+      });
+
       const payload = {
         title: form.title,
         slug: form.slug,
-        prizeName: form.prizeName,
-        prizeEstimatedValueETB: Number(form.prizeEstimatedValueETB),
+        prizes: cleanPrizes,
         ticketPriceETB: Number(form.ticketPriceETB),
         ticketPoolSize: Number(form.ticketPoolSize),
         startDate: new Date(form.startDate).toISOString(),
         endDate: new Date(form.endDate).toISOString(),
       };
       if (form.description) payload.description = form.description;
-      if (form.prizeDescription) payload.prizeDescription = form.prizeDescription;
       if (form.drawDate) payload.drawDate = new Date(form.drawDate).toISOString();
 
       const { data } = await api.post("/admin/draws", payload);
       nav(`/draws/${data.draw._id}`);
     } catch (err) {
-      const respErrors = err.response?.data?.errors;
-      if (respErrors?.length) {
-        setErrors(respErrors);
+      if (err.message && !err.response) {
+        setError(err.message);
       } else {
-        setError(err.response?.data?.message || "Failed to create draw");
+        const respErrors = err.response?.data?.errors;
+        if (respErrors?.length) {
+          setErrors(respErrors);
+        } else {
+          setError(err.response?.data?.message || "Failed to create draw");
+        }
       }
     } finally {
       setSubmitting(false);
@@ -84,37 +117,113 @@ export default function DrawCreate() {
         <p className="text-sm text-text-muted">The draw starts as a <strong>draft</strong>. Activate it to start selling tickets.</p>
       </header>
 
-      <form onSubmit={submit} className="bg-white border border-border rounded-xl p-6 space-y-5 max-w-3xl">
-        <Section title="Basics">
+      <form onSubmit={submit} className="space-y-5 max-w-3xl">
+        {/* Basics */}
+        <Card title="Basics">
           <div className="grid md:grid-cols-2 gap-4">
-            <Field label="Title" required value={form.title} onChange={onTitleChange} placeholder="Launch Draw — iPhone 15 Pro Max" />
+            <Field label="Title" required value={form.title} onChange={onTitleChange} placeholder="Mega Draw — 3 Prizes" />
             <Field
               label="Slug"
               required
               value={form.slug}
               onChange={onChange("slug")}
-              hint="URL-friendly identifier (lowercase, hyphens)"
-              placeholder="launch-iphone-100k"
+              hint="URL-friendly identifier"
+              placeholder="mega-draw-3-prizes"
             />
           </div>
           <Textarea label="Description" value={form.description} onChange={onChange("description")} hint="Optional. Shown on the public draw page." rows="3" />
-        </Section>
+        </Card>
 
-        <Section title="Prize">
-          <Field label="Prize name" required value={form.prizeName} onChange={onChange("prizeName")} placeholder="iPhone 15 Pro Max + 100,000 ETB" />
-          <Textarea label="Prize description" value={form.prizeDescription} onChange={onChange("prizeDescription")} hint="Optional. Detailed description of the prize." rows="3" />
-          <Field
-            label="Prize value (ETB)"
-            type="number"
-            required
-            value={form.prizeEstimatedValueETB}
-            onChange={onChange("prizeEstimatedValueETB")}
-            min="1"
-            placeholder="250000"
-          />
-        </Section>
+        {/* Prize tiers */}
+        <Card
+          title={`Prizes (${prizes.length} of 5)`}
+          subtitle="Tier 1 is the grand prize. Tier 2 is second place, and so on. The broadcast reveals winners in reverse — last tier first, grand prize last."
+        >
+          <div className="space-y-3">
+            {prizes.map((prize, idx) => (
+              <div key={idx} className="border border-border rounded-lg p-4 bg-surface">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                      idx === 0 ? "bg-amber-500" : idx === 1 ? "bg-slate-400" : "bg-amber-700"
+                    }`}>
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-sm">
+                        {idx === 0 ? "Grand prize (1st)" : `${ordinal(idx + 1)} prize`}
+                      </div>
+                    </div>
+                  </div>
+                  {prizes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removePrize(idx)}
+                      className="text-xs text-danger hover:bg-danger-light px-2 py-1 rounded"
+                    >
+                      ✕ Remove
+                    </button>
+                  )}
+                </div>
 
-        <Section title="Tickets">
+                <div className="grid md:grid-cols-2 gap-3 mb-3">
+                  <Field
+                    label="Prize name"
+                    required
+                    value={prize.name}
+                    onChange={(e) => updatePrize(idx, "name", e.target.value)}
+                    placeholder={idx === 0 ? "BYD 2026 Electric Car" : idx === 1 ? "iPhone 15 Pro Max" : "100,000 ETB cash"}
+                  />
+                  <Field
+                    label="Estimated value (ETB)"
+                    type="number"
+                    required
+                    value={prize.estimatedValueETB}
+                    onChange={(e) => updatePrize(idx, "estimatedValueETB", e.target.value)}
+                    min="1"
+                    placeholder="3500000"
+                  />
+                </div>
+
+                <Field
+                  label="Image URL (optional)"
+                  value={prize.imageUrl}
+                  onChange={(e) => updatePrize(idx, "imageUrl", e.target.value)}
+                  placeholder="https://..."
+                  hint="External URL for now. Upload feature coming later."
+                />
+
+                <Textarea
+                  label="Description (optional)"
+                  value={prize.description}
+                  onChange={(e) => updatePrize(idx, "description", e.target.value)}
+                  rows="2"
+                  placeholder="Fully electric, brand new, registered in Addis Ababa..."
+                />
+              </div>
+            ))}
+          </div>
+
+          {prizes.length < 5 && (
+            <button
+              type="button"
+              onClick={addPrize}
+              className="mt-3 w-full text-sm border-2 border-dashed border-border-strong text-text-muted py-3 rounded-lg hover:border-brand hover:text-brand transition font-medium"
+            >
+              + Add another prize tier
+            </button>
+          )}
+
+          {totalPrizeValue > 0 && (
+            <div className="mt-4 bg-brand-light border border-brand/30 rounded-md p-3 text-xs">
+              <strong className="text-brand-dark">Total prize value:</strong>{" "}
+              <span className="font-mono font-semibold">{totalPrizeValue.toLocaleString()} ETB</span>
+            </div>
+          )}
+        </Card>
+
+        {/* Tickets */}
+        <Card title="Tickets">
           <div className="grid md:grid-cols-2 gap-4">
             <Field
               label="Ticket price (ETB)"
@@ -123,7 +232,7 @@ export default function DrawCreate() {
               value={form.ticketPriceETB}
               onChange={onChange("ticketPriceETB")}
               min="1"
-              placeholder="500"
+              placeholder="1000"
             />
             <Field
               label="Total tickets in pool"
@@ -131,29 +240,33 @@ export default function DrawCreate() {
               required
               value={form.ticketPoolSize}
               onChange={onChange("ticketPoolSize")}
-              min="1"
+              min={prizes.length}
               max="1000000"
               placeholder="5000"
+              hint={`Must be at least ${prizes.length} (one per prize tier)`}
             />
           </div>
           {form.ticketPriceETB && form.ticketPoolSize && (
             <div className="bg-surface border border-border rounded-md p-3 text-xs text-text-muted">
-              Max revenue if fully sold: <strong className="text-text">{(Number(form.ticketPriceETB) * Number(form.ticketPoolSize)).toLocaleString()} ETB</strong>
+              Max revenue if fully sold:{" "}
+              <strong className="text-text">{(Number(form.ticketPriceETB) * Number(form.ticketPoolSize)).toLocaleString()} ETB</strong>
+              {totalPrizeValue > 0 && (
+                <> · Prize cost: <strong className="text-text">{totalPrizeValue.toLocaleString()} ETB</strong></>
+              )}
             </div>
           )}
-        </Section>
+        </Card>
 
-        <Section title="Schedule">
+        {/* Schedule */}
+        <Card title="Schedule">
           <div className="grid md:grid-cols-3 gap-4">
             <Field label="Start date" type="datetime-local" required value={form.startDate} onChange={onChange("startDate")} />
             <Field label="End date (sales close)" type="datetime-local" required value={form.endDate} onChange={onChange("endDate")} />
             <Field label="Draw date" type="datetime-local" value={form.drawDate} onChange={onChange("drawDate")} hint="Optional. When the winner is selected." />
           </div>
-        </Section>
+        </Card>
 
-        {error && (
-          <div className="bg-danger-light text-danger text-sm px-4 py-3 rounded-md">{error}</div>
-        )}
+        {error && <div className="bg-danger-light text-danger text-sm px-4 py-3 rounded-md">{error}</div>}
         {errors.length > 0 && (
           <div className="bg-danger-light text-danger text-sm px-4 py-3 rounded-md">
             <div className="font-medium mb-1">Please fix:</div>
@@ -178,12 +291,21 @@ export default function DrawCreate() {
   );
 }
 
-function Section({ title, children }) {
+function ordinal(n) {
+  const suffixes = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+}
+
+function Card({ title, subtitle, children }) {
   return (
-    <div className="space-y-4 pb-4">
-      <h3 className="font-semibold text-sm">{title}</h3>
+    <section className="bg-white border border-border rounded-xl p-5">
+      <div className="mb-4">
+        <h3 className="font-semibold text-sm">{title}</h3>
+        {subtitle && <p className="text-xs text-text-muted mt-0.5 leading-relaxed">{subtitle}</p>}
+      </div>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -204,7 +326,7 @@ function Field({ label, required, hint, ...props }) {
 
 function Textarea({ label, hint, ...props }) {
   return (
-    <div>
+    <div className="mt-3">
       <label className="block text-xs font-medium mb-1.5">{label}</label>
       <textarea
         {...props}

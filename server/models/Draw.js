@@ -1,4 +1,39 @@
+
 const mongoose = require("mongoose");
+
+// Sub-schema for each prize tier
+const prizeSchema = new mongoose.Schema(
+  {
+    tier: { type: Number, required: true, min: 1, max: 5 },
+    name: { type: String, required: true, maxlength: 200 },
+    description: { type: String, maxlength: 1000 },
+    imageUrl: { type: String },
+    estimatedValueETB: { type: Number, min: 0 },
+  },
+  { _id: true }
+);
+
+// Sub-schema for each tier's winner + quantum proof
+const winnerSchema = new mongoose.Schema(
+  {
+    tier: { type: Number, required: true },
+    ticketId: { type: mongoose.Schema.Types.ObjectId, ref: "Ticket", required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    quantumProof: {
+      seed: String,
+      apiResponseHash: String,
+      algorithm: { type: String, default: "modulo-v1" },
+      algorithmDescription: String,
+      source: String,
+      sourceLabel: String,
+      sourceAttempts: mongoose.Schema.Types.Mixed,
+      selectedIndex: Number,
+      totalEligibleAtPick: Number, // how many tickets were in the running for this tier
+      drawnAt: Date,
+    },
+  },
+  { _id: true }
+);
 
 const drawSchema = new mongoose.Schema(
   {
@@ -6,10 +41,14 @@ const drawSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, lowercase: true, index: true },
     description: { type: String, maxlength: 2000 },
 
-    prizeName: { type: String, required: true },
+    // === LEGACY single-prize fields (kept for old draws) ===
+    prizeName: { type: String }, // optional — only used if prizes[] is empty
     prizeDescription: { type: String },
     prizeImages: [{ type: String }],
-    prizeEstimatedValueETB: { type: Number, required: true, min: 0 },
+    prizeEstimatedValueETB: { type: Number, min: 0 },
+
+    // === NEW: multi-tier prize structure ===
+    prizes: { type: [prizeSchema], default: [] },
 
     ticketPriceETB: { type: Number, required: true, min: 1 },
     ticketPoolSize: { type: Number, required: true, min: 1 },
@@ -26,25 +65,30 @@ const drawSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Live broadcast / animation state
     drawAnimation: {
-      startedAt: { type: Date },         // when the broadcast started
+      startedAt: Date,
       durationMs: { type: Number, default: 20000 },
       phase: { type: String, enum: ["idle", "running", "complete"], default: "idle" },
-      sampleTicketNumbers: [{ type: String }], // ticket numbers to show during spinning (anonymized teaser pool)
+      sampleTicketNumbers: [String],
     },
 
+    // === NEW: array of winners, ordered by tier ascending (tier 1 = grand prize) ===
+    winners: { type: [winnerSchema], default: [] },
+
+    // === LEGACY single-winner fields (kept for old draws) ===
     winnerTicketId: { type: mongoose.Schema.Types.ObjectId, ref: "Ticket" },
     winnerUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
     quantumProof: {
-      seed: { type: String },
-      apiResponseHash: { type: String },
-      algorithm: { type: String, default: "modulo-v1" },
-      algorithmDescription: { type: String },
-      selectedIndex: { type: Number },
-      totalTicketsAtDraw: { type: Number },
-      drawnAt: { type: Date },
+      seed: String,
+      apiResponseHash: String,
+      algorithm: String,
+      algorithmDescription: String,
+      source: String,
+      sourceLabel: String,
+      sourceAttempts: mongoose.Schema.Types.Mixed,
+      selectedIndex: Number,
+      totalTicketsAtDraw: Number,
+      drawnAt: Date,
     },
 
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -60,6 +104,23 @@ drawSchema.virtual("percentSold").get(function () {
   return this.ticketPoolSize > 0
     ? Math.round((this.ticketsSold / this.ticketPoolSize) * 100)
     : 0;
+});
+
+// Helper: normalized prize list (works for both old + new draws)
+drawSchema.virtual("effectivePrizes").get(function () {
+  if (this.prizes?.length) return this.prizes.sort((a, b) => a.tier - b.tier);
+  if (this.prizeName) {
+    return [
+      {
+        tier: 1,
+        name: this.prizeName,
+        description: this.prizeDescription,
+        imageUrl: this.prizeImages?.[0],
+        estimatedValueETB: this.prizeEstimatedValueETB,
+      },
+    ];
+  }
+  return [];
 });
 
 drawSchema.set("toJSON", { virtuals: true });

@@ -4,6 +4,21 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import { useAuthStore } from "../store/auth";
 
+const TIER_LABEL = {
+  1: "Grand prize",
+  2: "2nd prize",
+  3: "3rd prize",
+  4: "4th prize",
+  5: "5th prize",
+};
+const TIER_COLOR = {
+  1: "from-amber-400 to-amber-600",
+  2: "from-slate-300 to-slate-500",
+  3: "from-amber-600 to-amber-800",
+  4: "from-burgundy to-burgundy-dark",
+  5: "from-burgundy-dark to-burgundy",
+};
+
 export default function DrawDetail() {
   const { slug } = useParams();
   const nav = useNavigate();
@@ -39,6 +54,17 @@ export default function DrawDetail() {
     );
   }
 
+  // Normalize prizes
+  const prizes = draw.prizes?.length
+    ? [...draw.prizes].sort((a, b) => a.tier - b.tier)
+    : draw.prizeName
+    ? [{ tier: 1, name: draw.prizeName, description: draw.prizeDescription, estimatedValueETB: draw.prizeEstimatedValueETB, imageUrl: draw.prizeImages?.[0] }]
+    : [];
+
+  const grandPrize = prizes[0];
+  const otherPrizes = prizes.slice(1);
+  const totalPrizeValue = prizes.reduce((sum, p) => sum + (p.estimatedValueETB || 0), 0);
+
   const remaining = draw.ticketPoolSize - draw.ticketsSold;
   const percent = (draw.ticketsSold / draw.ticketPoolSize) * 100;
   const soldOut = draw.status === "sold_out" || remaining <= 0;
@@ -51,26 +77,34 @@ export default function DrawDetail() {
 
   return (
     <div className="bg-surface min-h-[80vh]">
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-10">
         <Link to="/draws" className="text-sm text-text-muted hover:text-burgundy mb-6 inline-flex items-center gap-1 font-semibold">
           ← All draws
         </Link>
 
-        <div className="grid md:grid-cols-2 gap-10">
-          {/* Left: image */}
+        <div className="grid md:grid-cols-2 gap-8 md:gap-10">
+          {/* Left: grand prize image + other prizes */}
           <div>
-            <div className="aspect-square bg-gradient-to-br from-amber-50 to-burgundy-light rounded-2xl overflow-hidden shadow-card">
-              {draw.prizeImages?.[0] ? (
-                <img src={draw.prizeImages[0]} alt={draw.prizeName} className="w-full h-full object-cover" />
+            <div className="aspect-square bg-gradient-to-br from-amber-50 to-burgundy-light rounded-2xl overflow-hidden shadow-card mb-4">
+              {grandPrize?.imageUrl ? (
+                <img src={grandPrize.imageUrl} alt={grandPrize.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-9xl opacity-30">🎁</div>
               )}
             </div>
-            {draw.prizeImages?.length > 1 && (
-              <div className="grid grid-cols-4 gap-2 mt-3">
-                {draw.prizeImages.slice(1, 5).map((src, i) => (
-                  <div key={i} className="aspect-square bg-surface-2 rounded-lg overflow-hidden">
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+
+            {/* Other prize tiers grid */}
+            {otherPrizes.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {otherPrizes.map((p) => (
+                  <div key={p.tier} className="bg-white border border-border rounded-lg p-3 flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${TIER_COLOR[p.tier]} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`}>
+                      {p.tier}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] text-text-muted uppercase tracking-wide">{TIER_LABEL[p.tier]}</div>
+                      <div className="font-semibold text-sm truncate">{p.name}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -79,7 +113,7 @@ export default function DrawDetail() {
 
           {/* Right: details */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-3 flex-wrap">
               <span className="text-xs font-semibold text-burgundy">{draw.title}</span>
               {isActive && (
                 <span className="inline-flex items-center gap-1 text-xs text-success bg-success-light px-2 py-0.5 rounded-full font-semibold">
@@ -92,12 +126,18 @@ export default function DrawDetail() {
                   Sold out
                 </span>
               )}
+              {prizes.length > 1 && (
+                <span className="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
+                  {prizes.length} prizes
+                </span>
+              )}
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">{draw.prizeName}</h1>
+            <div className="text-[10px] text-text-muted uppercase tracking-widest mb-1">{TIER_LABEL[1]}</div>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">{grandPrize?.name}</h1>
 
-            {draw.prizeDescription && (
-              <p className="text-text-muted leading-relaxed mb-6">{draw.prizeDescription}</p>
+            {grandPrize?.description && (
+              <p className="text-text-muted leading-relaxed mb-5">{grandPrize.description}</p>
             )}
 
             {/* Price card */}
@@ -111,8 +151,9 @@ export default function DrawDetail() {
                   )}
                 </div>
                 <div>
-                  <div className="text-xs text-text-muted mb-1">Prize value</div>
-                  <div className="text-2xl font-extrabold text-gradient-gold">{draw.prizeEstimatedValueETB.toLocaleString()} <span className="text-sm font-normal text-text-muted">ETB</span></div>
+                  <div className="text-xs text-text-muted mb-1">Total prize pool</div>
+                  <div className="text-2xl font-extrabold text-gradient-gold">{totalPrizeValue.toLocaleString()} <span className="text-sm font-normal text-text-muted">ETB</span></div>
+                  <div className="text-xs text-text-faint mt-0.5">across {prizes.length} winner{prizes.length > 1 ? "s" : ""}</div>
                 </div>
               </div>
             </div>
@@ -159,6 +200,32 @@ export default function DrawDetail() {
             )}
           </div>
         </div>
+
+        {/* Prize tiers section (detailed) */}
+        {prizes.length > 1 && (
+          <section className="mt-12">
+            <h2 className="text-xl md:text-2xl font-extrabold tracking-tight mb-5">All prize tiers</h2>
+            <div className="grid md:grid-cols-3 gap-4">
+              {prizes.map((p) => (
+                <div key={p.tier} className="bg-white border border-border rounded-xl overflow-hidden">
+                  <div className={`h-32 bg-gradient-to-br ${TIER_COLOR[p.tier]} flex items-center justify-center relative`}>
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-5xl text-white opacity-50">{p.tier === 1 ? "🥇" : p.tier === 2 ? "🥈" : p.tier === 3 ? "🥉" : "🎁"}</span>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <div className="text-[10px] text-text-muted uppercase tracking-widest mb-1">{TIER_LABEL[p.tier]}</div>
+                    <h3 className="font-bold mb-1">{p.name}</h3>
+                    {p.description && <p className="text-sm text-text-muted mb-2">{p.description}</p>}
+                    <div className="text-sm font-bold text-burgundy">{p.estimatedValueETB?.toLocaleString()} ETB</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

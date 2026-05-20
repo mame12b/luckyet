@@ -72,6 +72,22 @@ exports.adminCreate = async (req, res, next) => {
       return res.status(400).json({ message: "endDate must be after startDate" });
     }
 
+    // Validate prize tiers if provided
+    if (data.prizes?.length) {
+      const tiers = data.prizes.map((p) => p.tier);
+      const uniqueTiers = new Set(tiers);
+      if (uniqueTiers.size !== tiers.length) {
+        return res.status(400).json({ message: "Prize tiers must be unique" });
+      }
+      // Tiers should start at 1 and be sequential
+      const sorted = [...tiers].sort((a, b) => a - b);
+      for (let i = 0; i < sorted.length; i++) {
+        if (sorted[i] !== i + 1) {
+          return res.status(400).json({ message: "Prize tiers must be sequential starting at 1 (1, 2, 3, ...)" });
+        }
+      }
+    }
+
     const draw = await Draw.create({
       ...data,
       createdBy: req.user.id,
@@ -83,7 +99,7 @@ exports.adminCreate = async (req, res, next) => {
       action: "draw.created",
       targetType: "Draw",
       targetId: draw._id,
-      metadata: { title: draw.title, slug: draw.slug },
+      metadata: { title: draw.title, slug: draw.slug, tierCount: data.prizes?.length || 1 },
       req,
     });
 
