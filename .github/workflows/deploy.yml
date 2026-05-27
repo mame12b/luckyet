@@ -1,0 +1,52 @@
+
+# Deployment workflow — TEMPLATE.
+# This is intentionally inert until you choose a host and fill in the steps.
+# It only runs when manually triggered (workflow_dispatch).
+
+name: Deploy
+
+on:
+  workflow_dispatch:    # manual trigger only — change to push when ready
+    inputs:
+      target:
+        description: "Deploy target"
+        required: true
+        default: "production"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ============================================================
+      # PICK ONE deployment strategy below and uncomment it.
+      # ============================================================
+
+      # ---- Option A: Render (easiest) ----
+      # Render auto-deploys from GitHub by default. You don't even
+      # need this workflow — just connect the repo in Render's dashboard.
+      # Render reads each Dockerfile automatically.
+
+      # ---- Option B: Railway ----
+      # - name: Install Railway CLI
+      #   run: npm i -g @railway/cli
+      # - name: Deploy
+      #   run: railway up --service luckyet-server
+      #   env:
+      #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      # ---- Option C: VPS over SSH (DigitalOcean, Hetzner, etc.) ----
+      # - name: Deploy to VPS
+      #   uses: appleboy/ssh-action@v1.0.3
+      #   with:
+      #     host: ${{ secrets.VPS_HOST }}
+      #     username: ${{ secrets.VPS_USER }}
+      #     key: ${{ secrets.VPS_SSH_KEY }}
+      #     script: |
+      #       cd /opt/luckyet
+      #       git pull
+      #       docker compose up -d --build
+
+      - name: Placeholder
+        run: echo "Choose a deployment strategy in deploy.yml"

@@ -1,0 +1,50 @@
+# Run the whole LuckyET stack locally.
+# Database is MongoDB Atlas (cloud) — NOT containerized,
+# because this machine's kernel can't run MongoDB locally.
+
+services:
+  server:
+    build:
+      context: ./server
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=${MONGO_URI}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRES=15m
+      - JWT_REFRESH_EXPIRES=12h
+      - CLIENT_URL=http://localhost:8080
+      - ADMIN_URL=http://localhost:8081
+      - QUANTUM_API_URL=https://qrng.anu.edu.au/API/jsonI.php
+    volumes:
+      # Persist uploaded receipts outside the container
+      - ./data/uploads:/app/uploads/receipts
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      args:
+        - VITE_API_URL=http://localhost:5000/api
+        - VITE_API_ORIGIN=http://localhost:5000
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: ./admin
+      args:
+        - VITE_API_URL=http://localhost:5000/api
+        - VITE_API_ORIGIN=http://localhost:5000
+        - VITE_PLAYER_URL=http://localhost:8080
+    ports:
+      - "8081:80"
+    depends_on:
+      - server
+    restart: unless-stopped
