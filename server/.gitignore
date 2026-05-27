@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Environment — NEVER commit
+.env
+.env.*
+!.env.example
+
+# Uploaded receipts — real user data, never commit
+uploads/receipts/*
+!uploads/receipts/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

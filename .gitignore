@@ -1,12 +1,29 @@
+# Dependencies
 node_modules/
+**/node_modules/
+
+# Environment — NEVER commit
 .env
-.env.local
-.env.production
-dist/
-build/
-.DS_Store
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+
+# Build output
+**/dist/
+
+# Docker
+data/
+
+# Uploaded user data
+server/uploads/receipts/*
+!server/uploads/receipts/.gitkeep
+
+# Logs
 *.log
-coverage/
-.vite/
-.cache/
-uploads/
+**/*.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
