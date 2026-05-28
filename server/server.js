@@ -36,6 +36,7 @@ const allowedOrigins = [process.env.CLIENT_URL, process.env.ADMIN_URL].filter(Bo
 app.use(
   cors({
     origin: (origin, cb) => {
+      console.log("CORS Check -> Incoming Origin:", origin, " | Allowed Origins:", allowedOrigins);
       if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
       return cb(new Error("CORS blocked"));
     },
