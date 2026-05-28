@@ -32,13 +32,26 @@ app.use(
   })
 );
 
-const allowedOrigins = [process.env.CLIENT_URL, process.env.ADMIN_URL].filter(Boolean);
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.ADMIN_URL,
+].filter(Boolean);
+
 app.use(
   cors({
     origin: (origin, cb) => {
-      console.log("CORS Check -> Incoming Origin:", origin, " | Allowed Origins:", allowedOrigins);
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error("CORS blocked"));
+      console.log("CORS Check ->", origin);
+
+      // allow server-to-server / curl / health checks
+      if (!origin) return cb(null, true);
+
+      // allow exact matches
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+
+      // allow all vercel preview deployments (IMPORTANT FIX)
+      if (origin.includes("vercel.app")) return cb(null, true);
+
+      return cb(new Error("CORS blocked: " + origin));
     },
     credentials: true,
   })
