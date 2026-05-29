@@ -268,24 +268,34 @@ export default function DrawLive() {
   );
 }
 
-function computePhase(state) {
+function computePhase(state, localPhaseOverride) {
   if (!state) return { name: "loading", label: "" };
+
+  // If the frontend is running its own smooth local animation clock, prioritize it!
+  if (localPhaseOverride) {
+    return localPhaseOverride;
+  }
+
+  // Fallback to strict server states
+  if (state.status === "drawing" && state.animation) {
+    return getAnimationPhase(state.animation.progress, state.winners);
+  }
 
   if (state.status === "drawn" && state.winners?.length) {
     return { name: "reveal", label: "Results are in!", progress: 1 };
   }
 
-  if (state.status === "drawing" && state.animation) {
-    const p = state.animation.progress;
-    if (p < 0.15) return { name: "connecting", label: "Connecting to quantum lab…", progress: p / 0.15 };
-    if (p < 0.35) return { name: "receiving", label: "Quantum bytes incoming…", progress: (p - 0.15) / 0.20 };
-    if (p < 0.70) return { name: "reel", label: "Drawing winners…", progress: (p - 0.35) / 0.35 };
-    if (p < 0.97) return { name: "slowing", label: "Locking in results…", progress: (p - 0.70) / 0.27 };
-    if (state.winners?.length) return { name: "reveal", label: "Results are in!", progress: 1 };
-    return { name: "slowing", label: "Locking in results…", progress: 1 };
-  }
-
   return { name: "idle", label: "Waiting to start", progress: 0 };
+}
+
+// Helper to keep code clean
+function getAnimationPhase(p, winners) {
+  if (p < 0.15) return { name: "connecting", label: "Connecting to quantum lab…", progress: p / 0.15 };
+  if (p < 0.35) return { name: "receiving", label: "Quantum bytes incoming…", progress: (p - 0.15) / 0.20 };
+  if (p < 0.70) return { name: "reel", label: "Drawing winners…", progress: (p - 0.35) / 0.35 };
+  if (p < 0.97) return { name: "slowing", label: "Locking in results…", progress: (p - 0.70) / 0.27 };
+  if (winners?.length) return { name: "reveal", label: "Results are in!", progress: 1 };
+  return { name: "slowing", label: "Locking in results…", progress: 1 };
 }
 
 function SlotDisplay({ value, spinning }) {
