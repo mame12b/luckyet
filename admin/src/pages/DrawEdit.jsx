@@ -292,7 +292,7 @@ export default function DrawEdit() {
               <h3 className="font-semibold mb-3 text-sm">Pricing</h3>
               <div className="space-y-2 text-sm">
                 <Row label="Ticket price" value={`${draw.ticketPriceETB.toLocaleString()} ETB`} />
-                <Row label="Pool size" value={draw.ticketPoolSize.toLocaleString()} />
+                <EditablePoolSize draw={draw} onSaved={load} />
                 <Row label="Prize tiers" value={effectivePrizes.length} />
               </div>
             </div>
@@ -453,6 +453,78 @@ function ordinal(n) {
   const suffixes = ["th", "st", "nd", "rd"];
   const v = n % 100;
   return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+}
+
+
+function EditablePoolSize({ draw, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(draw.ticketPoolSize);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const canEdit = !["drawing", "drawn", "cancelled"].includes(draw.status);
+  const minValue = draw.ticketsSold;
+
+  const save = async () => {
+    setError("");
+    const n = parseInt(value);
+    if (!n || n < minValue) {
+      setError(`Must be at least ${minValue} (tickets already sold)`);
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.patch(`/admin/draws/${draw._id}`, { ticketPoolSize: n });
+      setEditing(false);
+      onSaved?.();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div className="flex justify-between items-center gap-3">
+        <span className="text-text-muted text-xs">Pool size</span>
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-xs">{draw.ticketPoolSize.toLocaleString()}</span>
+          {canEdit && (
+            <button onClick={() => { setValue(draw.ticketPoolSize); setEditing(true); }}
+              className="text-[10px] text-brand-dark hover:underline">
+              Edit
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-surface border border-border rounded-md p-3">
+      <div className="text-xs text-text-muted mb-1">Pool size (min {minValue})</div>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min={minValue}
+          max="1000000"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="flex-1 bg-white border border-border focus:border-brand outline-none rounded px-2 py-1 text-sm"
+        />
+        <button onClick={save} disabled={saving}
+          className="text-xs bg-brand text-white font-semibold px-3 py-1 rounded hover:bg-brand-dark disabled:opacity-50">
+          {saving ? "..." : "Save"}
+        </button>
+        <button onClick={() => { setEditing(false); setError(""); }} disabled={saving}
+          className="text-xs text-text-muted px-2">
+          Cancel
+        </button>
+      </div>
+      {error && <div className="text-[10px] text-danger mt-1">{error}</div>}
+    </div>
+  );
 }
 
 function Row({ label, value }) {

@@ -193,99 +193,152 @@ export default function DrawLive() {
         )}
 
         {/* REVEAL — all winners horizontally */}
-        {phase.name === "reveal" && state.winners?.length > 0 && (
-          <div className="w-full max-w-6xl animate-slideIn">
-            <div className="text-center mb-8">
-              <div className="text-4xl md:text-6xl mb-2">🎉</div>
-              <div className="text-lg md:text-2xl uppercase tracking-[0.3em] text-amber-300 font-bold">
-                {state.winners.length > 1 ? "Winners" : "Winner"}
+        {(phase.name === "reveal" || (phase.revealedTiers?.length > 0)) && state.winners?.length > 0 && (
+  <div className="w-full max-w-6xl animate-slideIn">
+    <div className="text-center mb-8">
+      <div className="text-4xl md:text-6xl mb-2">🎉</div>
+      <div className="text-lg md:text-2xl uppercase tracking-[0.3em] text-amber-300 font-bold">
+        {phase.revealedTiers?.length === state.winners.length
+          ? (state.winners.length > 1 ? "Winners" : "Winner")
+          : `${ordinalSuffix(phase.currentTier)} prize`}
+      </div>
+    </div>
+
+    <div className={`grid gap-4 md:gap-6 ${
+      state.winners.length === 1 ? "max-w-md mx-auto" :
+      state.winners.length === 2 ? "md:grid-cols-2 max-w-3xl mx-auto" :
+      "md:grid-cols-3"
+    }`}>
+      {[...state.winners]
+        .sort((a, b) => a.tier - b.tier)
+        .map((w, idx) => {
+          // Only show this card if its tier has been revealed
+          const isRevealed = phase.revealedTiers?.includes(w.tier);
+          if (!isRevealed) {
+            // Placeholder card — keeps layout stable
+            return (
+              <div key={w.tier} className="bg-white/5 border border-white/10 rounded-2xl p-5 text-center opacity-30">
+                <div className="text-5xl mb-2">❓</div>
+                <div className="text-xs uppercase tracking-widest opacity-60 font-bold">
+                  Pending…
+                </div>
+              </div>
+            );
+          }
+          const meta = TIER_META[w.tier] || TIER_META[1];
+          const prize = state.prizes?.find((p) => p.tier === w.tier);
+          return (
+            <div
+              key={w.tier}
+              className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 text-center animate-slideIn"
+              style={{ animationDelay: `${idx * 0.2}s` }}
+            >
+              <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-burgundy rounded-xl py-3 px-2 mb-4">
+                <div className="text-[10px] uppercase tracking-widest font-bold opacity-70">Winning Ticket</div>
+                <div className="font-mono text-xl md:text-2xl font-extrabold tracking-wider break-all">
+                  {w.ticketNumber}
+                </div>
+              </div>
+              <div className="text-5xl mb-2">{meta.medal}</div>
+              <div className="text-xs uppercase tracking-widest text-amber-300 font-bold mb-1">
+                {meta.label}
+              </div>
+              <div className="font-bold text-lg mb-3 min-h-[3.5rem] flex items-center justify-center">
+                {prize?.name || "Prize"}
+              </div>
+              <div className="border-t border-white/15 pt-3">
+                <div className="text-[10px] uppercase tracking-wider opacity-60 mb-0.5">Won by</div>
+                <div className="text-xl font-extrabold">{w.displayName}</div>
+                <div className="text-sm opacity-70">{w.country}</div>
               </div>
             </div>
+          );
+        })}
+    </div>
 
-            {/* Horizontal winner cards */}
-            <div className={`grid gap-4 md:gap-6 ${
-              state.winners.length === 1 ? "max-w-md mx-auto" :
-              state.winners.length === 2 ? "md:grid-cols-2 max-w-3xl mx-auto" :
-              "md:grid-cols-3"
-            }`}>
-              {[...state.winners].sort((a, b) => a.tier - b.tier).map((w, idx) => {
-                const meta = TIER_META[w.tier] || TIER_META[1];
-                const prize = state.prizes?.find((p) => p.tier === w.tier);
-                return (
-                  <div
-                    key={w.tier}
-                    className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 text-center animate-slideIn"
-                    style={{ animationDelay: `${idx * 0.2}s` }}
-                  >
-                    {/* Ticket number on top */}
-                    <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-burgundy rounded-xl py-3 px-2 mb-4">
-                      <div className="text-[10px] uppercase tracking-widest font-bold opacity-70">Winning Ticket</div>
-                      <div className="font-mono text-xl md:text-2xl font-extrabold tracking-wider break-all">
-                        {w.ticketNumber}
-                      </div>
-                    </div>
-
-                    {/* Medal + tier */}
-                    <div className="text-5xl mb-2">{meta.medal}</div>
-                    <div className="text-xs uppercase tracking-widest text-amber-300 font-bold mb-1">
-                      {meta.label}
-                    </div>
-
-                    {/* Prize name */}
-                    <div className="font-bold text-lg mb-3 min-h-[3.5rem] flex items-center justify-center">
-                      {prize?.name || "Prize"}
-                    </div>
-
-                    {/* Winner */}
-                    <div className="border-t border-white/15 pt-3">
-                      <div className="text-[10px] uppercase tracking-wider opacity-60 mb-0.5">Won by</div>
-                      <div className="text-xl font-extrabold">{w.displayName}</div>
-                      <div className="text-sm opacity-70">{w.country}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="text-center mt-8">
-              <Link
-                to={`/results/${state.slug}`}
-                className="inline-block text-xs md:text-sm bg-white/10 backdrop-blur border border-white/30 px-5 py-2.5 rounded-full hover:bg-white/20 transition"
-              >
-                View quantum proof →
-              </Link>
-            </div>
-
-            <Confetti />
-          </div>
-        )}
-      </div>
-
-      <div className="absolute bottom-4 left-0 right-0 text-center text-[10px] md:text-xs opacity-40 px-4 z-30">
-        Powered by ANU Quantum Random Numbers · Result is verifiable on the proof page
+    {phase.revealedTiers?.length === state.winners.length && (
+      <>
+        <div className="text-center mt-8">
+          <Link
+            to={`/results/${state.slug}`}
+            className="inline-block text-xs md:text-sm bg-white/10 backdrop-blur border border-white/30 px-5 py-2.5 rounded-full hover:bg-white/20 transition"
+          >
+            View quantum proof →
+          </Link>
+        </div>
+        <Confetti />
+      </>
+    )}
+  </div>
+)}
       </div>
     </div>
   );
 }
 
-function computePhase(state, localPhaseOverride) {
+function computePhase(state) {
   if (!state) return { name: "loading", label: "" };
 
-  // If the frontend is running its own smooth local animation clock, prioritize it!
-  if (localPhaseOverride) {
-    return localPhaseOverride;
-  }
-
-  // Fallback to strict server states
-  if (state.status === "drawing" && state.animation) {
-    return getAnimationPhase(state.animation.progress, state.winners);
-  }
-
   if (state.status === "drawn" && state.winners?.length) {
-    return { name: "reveal", label: "Results are in!", progress: 1 };
+    return { name: "reveal", label: "Results are in!", progress: 1, revealedTiers: state.winners.map(w => w.tier) };
+  }
+
+  if (state.status === "drawing" && state.animation) {
+    const elapsed = state.animation.elapsedMs;
+    const tierDurations = state.animation.tierDurations || [];
+
+    // Phase timing constants
+    const INTRO_MS = 4000; // connecting + receiving combined
+
+    if (elapsed < INTRO_MS * 0.4) {
+      return { name: "connecting", label: "Connecting to quantum lab…", progress: elapsed / (INTRO_MS * 0.4) };
+    }
+    if (elapsed < INTRO_MS) {
+      return { name: "receiving", label: "Quantum bytes incoming…", progress: (elapsed - INTRO_MS * 0.4) / (INTRO_MS * 0.6) };
+    }
+
+    // Now we're in tier-reveal territory
+    // REVEAL ORDER: highest tier first (3rd → 2nd → 1st), so iterate descending
+    const reversedTiers = [...tierDurations].sort((a, b) => b.tier - a.tier);
+
+    let cursor = INTRO_MS;
+    const revealedTiers = [];
+    for (const td of reversedTiers) {
+      const tierStart = cursor;
+      const tierEnd = cursor + td.durationMs;
+
+      if (elapsed >= tierEnd) {
+        // This tier is fully done — already revealed
+        revealedTiers.push(td.tier);
+        cursor = tierEnd;
+        continue;
+      }
+
+      // We're inside THIS tier's animation
+      const tierProgress = (elapsed - tierStart) / td.durationMs;
+      // First 60% = spin, next 30% = slow, last 10% = reveal moment
+      if (tierProgress < 0.6) {
+        return { name: "reel", label: `Drawing ${ordinalSuffix(td.tier)} prize winner…`, progress: tierProgress / 0.6, currentTier: td.tier, revealedTiers };
+      }
+      if (tierProgress < 0.9) {
+        return { name: "slowing", label: `Locking in ${ordinalSuffix(td.tier)} winner…`, progress: (tierProgress - 0.6) / 0.3, currentTier: td.tier, revealedTiers };
+      }
+      // Reveal moment for this tier — add it to revealed
+      return { name: "reveal", label: `${ordinalSuffix(td.tier)} prize winner!`, progress: 1, currentTier: td.tier, revealedTiers: [...revealedTiers, td.tier] };
+    }
+
+    // All tiers revealed
+    return { name: "reveal", label: "All results are in!", progress: 1, revealedTiers: tierDurations.map(t => t.tier) };
   }
 
   return { name: "idle", label: "Waiting to start", progress: 0 };
+}
+
+function ordinalSuffix(n) {
+  if (n === 1) return "Grand";
+  if (n === 2) return "2nd";
+  if (n === 3) return "3rd";
+  return `${n}th`;
 }
 
 // Helper to keep code clean

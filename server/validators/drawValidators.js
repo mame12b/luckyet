@@ -42,6 +42,7 @@ exports.updateDrawSchema = z.object({
   prizeImages: z.array(z.string().url()).optional(),
   prizeEstimatedValueETB: z.number().positive().optional(),
   drawDate: z.string().datetime().or(z.date()).optional(),
+  ticketPoolSize: z.number().int().positive().max(1_000_000).optional(),
 });
 
 exports.updateStatusSchema = z.object({

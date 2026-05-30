@@ -5,7 +5,23 @@ const Ticket = require("../models/Ticket");
 const { selectWinnerIndex } = require("../services/quantumService");
 const { logAudit } = require("../services/auditService");
 
-const ANIMATION_DURATION_MS = 20000;
+// Per-tier broadcast durations
+const TIER_DURATIONS_MS = {
+  1: 30000,  // Grand prize — biggest moment
+  2: 20000,
+  3: 20000,
+  4: 15000,
+  5: 15000,
+};
+
+// Compute total duration based on the number of tiers
+function computeTotalDuration(tierCount) {
+  let total = 0;
+  for (let i = 1; i <= tierCount; i++) {
+    total += TIER_DURATIONS_MS[i] || 15000;
+  }
+  return total;
+}
 
 /**
  * Admin: start the live broadcast + run the quantum draw.
@@ -133,11 +149,17 @@ exports.startDraw = async (req, res, next) => {
     draw.status = "drawing";
     draw.winners = winners;
     draw.drawnBy = req.user.id;
+    const totalDuration = computeTotalDuration(winners.length);
     draw.drawAnimation = {
       startedAt: new Date(),
-      durationMs: ANIMATION_DURATION_MS,
+      durationMs: totalDuration,
       phase: "running",
       sampleTicketNumbers,
+      // Store per-tier durations so frontend can show correct progress per tier
+      tierDurations: winners.map((w) => ({
+        tier: w.tier,
+        durationMs: TIER_DURATIONS_MS[w.tier] || 15000,
+      })),
     };
 
     // Also populate legacy single-winner fields if this is a 1-prize draw
@@ -168,23 +190,23 @@ exports.startDraw = async (req, res, next) => {
     });
 
     // Schedule status transition to "drawn"
-    setTimeout(async () => {
-      try {
-        await Draw.findByIdAndUpdate(draw._id, {
-          status: "drawn",
-          "drawAnimation.phase": "complete",
-        });
-      } catch (err) {
-        console.error("Failed to finalize draw status:", err);
-      }
-    }, ANIMATION_DURATION_MS + 1000);
+      setTimeout(async () => {
+        try {
+          await Draw.findByIdAndUpdate(draw._id, {
+            status: "drawn",
+            "drawAnimation.phase": "complete",
+          });
+        } catch (err) {
+          console.error("Failed to finalize draw status:", err);
+        }
+      }, totalDuration + 1000); 
 
     res.json({
       message: "Broadcast started.",
       drawSlug: draw.slug,
       liveUrl: `/draws/${draw.slug}/live`,
       startedAt: draw.drawAnimation.startedAt,
-      durationMs: ANIMATION_DURATION_MS,
+      durationMs: totalDuration,
       tierCount: winners.length,
     });
   } catch (err) {
@@ -266,6 +288,7 @@ exports.getLiveState = async (req, res, next) => {
         progress: Math.min(1, elapsed / duration),
         sampleTicketNumbers: draw.drawAnimation.sampleTicketNumbers || [],
         tierCount: sortedWinners.length,
+        tierDurations: draw.drawAnimation.tierDurations || [],
       };
 
       if (elapsed >= duration) {

@@ -3,7 +3,13 @@ const { z } = require("zod");
 exports.initiatePaymentSchema = z.object({
   drawId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid draw id"),
   quantity: z.number().int().positive().max(50),
-  paymentMethod: z.enum(["botim", "cbe", "awash", "dashen", "telebirr_intl", "uae_bank", "other"]),
+  paymentMethod: z.enum([
+  "botim",
+  "telebirr",
+  "cbe_bank",
+  "awash_bank",
+  "bank_transfer",  // legacy
+]),
   promoCode: z.string().toUpperCase().optional(),
 });
 

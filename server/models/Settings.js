@@ -4,7 +4,7 @@ const paymentAccountSchema = new mongoose.Schema(
   {
     method: {
       type: String,
-      enum: ["botim", "cbe", "awash", "dashen", "telebirr_intl", "uae_bank"],
+      enum: ["botim", "telebirr", "cbe_bank", "awash_bank", "bank_transfer"],
       required: true,
     },
     label: { type: String, required: true }, // "Botim (UAE)"

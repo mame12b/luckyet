@@ -114,15 +114,17 @@ exports.adminUpdate = async (req, res, next) => {
     const draw = await Draw.findById(req.params.id);
     if (!draw) return res.status(404).json({ message: "Draw not found" });
 
-    // Once active or beyond, restrict what can change
-    const lockedStatuses = ["active", "sold_out", "closed", "drawn"];
-    if (lockedStatuses.includes(draw.status)) {
-      const allowed = ["description", "prizeImages", "drawDate"];
-      const keys = Object.keys(req.body);
-      const invalid = keys.filter((k) => !allowed.includes(k));
-      if (invalid.length) {
+    // Protect ticket pool: can only change if not yet drawing/drawn,
+    // and can never decrease below tickets already sold
+    if (req.body.ticketPoolSize !== undefined) {
+      if (["drawing", "drawn", "cancelled"].includes(draw.status)) {
         return res.status(400).json({
-          message: `Cannot update fields after draw is ${draw.status}: ${invalid.join(", ")}`,
+          message: `Cannot change pool size on a draw in status "${draw.status}"`,
+        });
+      }
+      if (req.body.ticketPoolSize < draw.ticketsSold) {
+        return res.status(400).json({
+          message: `Pool size cannot be less than ${draw.ticketsSold} tickets already sold`,
         });
       }
     }

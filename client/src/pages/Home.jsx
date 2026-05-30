@@ -4,28 +4,31 @@ import { Link } from "react-router-dom";
 
 const SLIDES = [
   {
-    eyebrow: "🎰 New launch draw",
-    title: "Win an iPhone 15 Pro Max",
+    eyebrow: "🎰 Live now",
+    title: "iPhone 15 Pro Max",
     accent: "+ 100,000 ETB",
-    body: "Be among the first 5,000 players. Every ticket is quantum-verified — impossible to rig.",
+    bodyShort: "Be among the first 5,000 players.",
+    bodyLong: "Every ticket is quantum-verified — impossible to rig.",
     cta: { label: "View this draw", to: "/draws" },
     bg: "from-amber-50 via-white to-burgundy-light",
     badge: "Active",
   },
   {
     eyebrow: "🏆 Coming soon",
-    title: "Win a Brand New Car",
+    title: "Brand New Car",
     accent: "Suzuki Dzire 2026",
-    body: "Our second draw. Bigger prize, same trusted quantum-random system. Reserve your spot when sales open.",
+    bodyShort: "Same trusted draw, bigger prize.",
+    bodyLong: "Reserve your spot when sales open.",
     cta: { label: "Browse all draws", to: "/draws" },
     bg: "from-burgundy-light via-white to-amber-50",
     badge: "Soon",
   },
   {
     eyebrow: "🏠 Final draw",
-    title: "Win a House in Addis",
+    title: "House in Addis",
     accent: "Fully furnished",
-    body: "The dream prize. Three-bedroom apartment in a prime Addis Ababa neighborhood with full legal paperwork.",
+    bodyShort: "The dream prize.",
+    bodyLong: "Three-bedroom apartment with full legal paperwork.",
     cta: { label: "Get notified", to: "/register" },
     bg: "from-amber-50 via-white to-amber-100",
     badge: "Upcoming",
@@ -59,8 +62,9 @@ export default function Home() {
                 {current.title}<br />
                 <span className="text-gradient-gold">{current.accent}</span>
               </h1>
-              <p className="text-text-muted text-lg leading-relaxed mb-7 max-w-lg">
-                {current.body}
+              <p className="text-text-muted text-base sm:text-lg leading-relaxed mb-6 sm:mb-7 max-w-lg">
+              <span className="font-semibold text-text">{current.bodyShort}</span>{" "}
+              <span className="hidden sm:inline">{current.bodyLong}</span>
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link

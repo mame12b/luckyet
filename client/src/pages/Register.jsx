@@ -1,132 +1,176 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import { useAuthStore } from "../store/auth";
 
-const COUNTRIES = [
-  { code: "AE", name: "United Arab Emirates" },
-  { code: "SA", name: "Saudi Arabia" },
-  { code: "KW", name: "Kuwait" },
-  { code: "QA", name: "Qatar" },
-  { code: "BH", name: "Bahrain" },
-  { code: "OM", name: "Oman" },
-  { code: "ET", name: "Ethiopia" },
-  { code: "OTHER", name: "Other" },
+// Phone codes for our target markets (GCC + Ethiopia + Eritrea)
+// `country` is the ISO code we infer and send to the backend
+const PHONE_CODES = [
+  { code: "+971", country: "AE", flag: "🇦🇪", label: "UAE" },
+  { code: "+966", country: "SA", flag: "🇸🇦", label: "Saudi Arabia" },
+  { code: "+965", country: "KW", flag: "🇰🇼", label: "Kuwait" },
+  { code: "+974", country: "QA", flag: "🇶🇦", label: "Qatar" },
+  { code: "+973", country: "BH", flag: "🇧🇭", label: "Bahrain" },
+  { code: "+968", country: "OM", flag: "🇴🇲", label: "Oman" },
+  { code: "+251", country: "ET", flag: "🇪🇹", label: "Ethiopia" },
+  { code: "+291", country: "ER", flag: "🇪🇷", label: "Eritrea" },
+  { code: "+1",   country: "US", flag: "🇺🇸", label: "USA/Canada" },
+  { code: "+44",  country: "GB", flag: "🇬🇧", label: "UK" },
 ];
 
 export default function Register() {
   const nav = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+
+  const [phoneCode, setPhoneCode] = useState(PHONE_CODES[0]); // default UAE
   const [form, setForm] = useState({
-    fullName: "", email: "", phone: "", password: "",
-    country: "AE", language: "en", referredByCode: "",
+    fullName: "",
+    email: "",
+    phoneNumber: "",       // just the digits after the code
+    password: "",
+    promoCode: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const update = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
   const submit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Validate phone: just digits, 6-12 long
+    const digits = form.phoneNumber.replace(/\D/g, "");
+    if (digits.length < 6 || digits.length > 12) {
+      setError("Phone number should be 6 to 12 digits, no spaces.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const payload = { ...form };
-      if (!payload.referredByCode) delete payload.referredByCode;
-      const { data } = await api.post("/auth/register", payload);
+      const { data } = await api.post("/auth/register", {
+        fullName: form.fullName.trim(),
+        email: form.email.trim().toLowerCase(),
+        phone: `${phoneCode.code}${digits}`,        // full E.164
+        password: form.password,
+        country: phoneCode.country,                  // inferred from phone code
+        language: "en",                              // default; user changes globally later
+        promoCode: form.promoCode.trim().toUpperCase() || undefined,
+      });
       setAuth(data.user, data.accessToken);
-      nav("/draws");
+      nav("/dashboard");
     } catch (err) {
-      setError(
-        err.response?.data?.errors?.[0]?.message ||
-        err.response?.data?.message ||
-        "Registration failed"
-      );
+      setError(err.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const onChange = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-6 py-12 bg-surface">
-      <div className="w-full max-w-md bg-white border border-border rounded-xl p-8 shadow-card">
-        <h1 className="text-2xl font-bold tracking-tight mb-2">Create account</h1>
-        <p className="text-text-muted text-sm mb-6">Join LuckyET in under a minute</p>
+    <div className="bg-surface min-h-[80vh] flex items-start justify-center px-4 py-8 sm:py-12">
+      <div className="w-full max-w-md">
+        <div className="bg-white border border-border rounded-2xl p-5 sm:p-7 shadow-card">
+          <h1 className="text-2xl font-extrabold tracking-tight mb-1">Create account</h1>
+          <p className="text-text-muted text-sm mb-5">Join LuckyET in under a minute</p>
 
-        <form onSubmit={submit} className="space-y-4">
-          <Field label="Full name" value={form.fullName} onChange={onChange("fullName")} required />
-          <Field label="Email" type="email" value={form.email} onChange={onChange("email")} required />
-          <Field label="Phone (with country code)" placeholder="+971501234567" value={form.phone} onChange={onChange("phone")} required />
-          <Field label="Password" type="password" hint="8+ characters with upper, lower, and number" value={form.password} onChange={onChange("password")} required />
-
-          <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={submit} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-medium text-text mb-1.5">Country</label>
-              <select
-                value={form.country}
-                onChange={onChange("country")}
+              <label className="block text-xs font-semibold mb-1">Full name</label>
+              <input
+                type="text"
+                value={form.fullName}
+                onChange={update("fullName")}
+                required
+                minLength="2"
+                placeholder="Asrat Belay"
                 className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
-              >
-                {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-              </select>
+              />
             </div>
+
             <div>
-              <label className="block text-xs font-medium text-text mb-1.5">Language</label>
-              <select
-                value={form.language}
-                onChange={onChange("language")}
+              <label className="block text-xs font-semibold mb-1">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={update("email")}
+                required
+                placeholder="you@example.com"
                 className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
-              >
-                <option value="en">English</option>
-                <option value="am">አማርኛ</option>
-                <option value="ti">ትግርኛ</option>
-              </select>
+              />
             </div>
-          </div>
 
-          <Field
-            label="Promo code (optional)"
-            placeholder="HABESHA10"
-            value={form.referredByCode}
-            onChange={(e) => setForm({ ...form, referredByCode: e.target.value.toUpperCase() })}
-          />
+            <div>
+              <label className="block text-xs font-semibold mb-1">Phone number</label>
+              <div className="flex gap-2">
+                {/* Country code selector */}
+                <select
+                  value={phoneCode.code}
+                  onChange={(e) => setPhoneCode(PHONE_CODES.find(c => c.code === e.target.value) || PHONE_CODES[0])}
+                  className="bg-white border border-border focus:border-brand outline-none rounded-md px-2 py-2.5 text-sm font-mono w-28"
+                >
+                  {PHONE_CODES.map(c => (
+                    <option key={c.country} value={c.code}>{c.flag} {c.code}</option>
+                  ))}
+                </select>
+                {/* Digits */}
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={form.phoneNumber}
+                  onChange={update("phoneNumber")}
+                  required
+                  placeholder="50 123 4567"
+                  className="flex-1 bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
+                />
+              </div>
+              <p className="text-[10px] text-text-faint mt-1">Selected: {phoneCode.flag} {phoneCode.label}</p>
+            </div>
 
-          {error && (
-            <div className="bg-danger-light text-danger text-xs px-3 py-2 rounded-md">{error}</div>
-          )}
+            <div>
+              <label className="block text-xs font-semibold mb-1">Password</label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={update("password")}
+                required
+                minLength="8"
+                placeholder="At least 8 characters"
+                className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
+              />
+              <p className="text-[10px] text-text-faint mt-1">Use upper, lower & a number</p>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-brand text-white font-medium py-2.5 rounded-md hover:bg-brand-dark transition disabled:opacity-50 text-sm"
-          >
-            {loading ? "Creating account..." : "Create account"}
-          </button>
+            <div>
+              <label className="block text-xs font-semibold mb-1">Promo code <span className="text-text-faint font-normal">(optional)</span></label>
+              <input
+                type="text"
+                value={form.promoCode}
+                onChange={update("promoCode")}
+                placeholder="HABESHA10"
+                className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-2.5 text-sm font-mono uppercase"
+              />
+            </div>
 
-          <p className="text-xs text-text-faint text-center">
-            By creating an account, you confirm you are 18+ and accept our Terms.
-          </p>
-        </form>
+            {error && <div className="bg-danger-light text-danger text-xs px-3 py-2 rounded-md">{error}</div>}
 
-        <p className="text-center text-sm text-text-muted mt-6">
-          Already have an account?{" "}
-          <Link to="/login" className="text-brand font-medium hover:underline">Sign in</Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-gold disabled:opacity-50 text-sm"
+            >
+              {loading ? "Creating account..." : "Create account"}
+            </button>
+
+            <p className="text-[11px] text-text-faint text-center pt-1 leading-relaxed">
+              By creating an account, you confirm you are 18+ and accept our Terms.
+            </p>
+          </form>
+        </div>
+
+        <p className="text-center text-sm text-text-muted mt-5">
+          Already have an account? <Link to="/login" className="text-brand-dark font-semibold hover:underline">Log in</Link>
         </p>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, hint, ...props }) {
-  return (
-    <div>
-      <label className="block text-xs font-medium text-text mb-1.5">{label}</label>
-      <input
-        {...props}
-        className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3.5 py-2.5 text-sm transition"
-      />
-      {hint && <p className="text-[11px] text-text-faint mt-1">{hint}</p>}
     </div>
   );
 }

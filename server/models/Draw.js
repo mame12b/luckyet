@@ -70,6 +70,10 @@ const drawSchema = new mongoose.Schema(
       durationMs: { type: Number, default: 20000 },
       phase: { type: String, enum: ["idle", "running", "complete"], default: "idle" },
       sampleTicketNumbers: [String],
+      tierDurations: [{
+        tier: Number,
+        durationMs: Number,
+      }],
     },
 
     // === NEW: array of winners, ordered by tier ascending (tier 1 = grand prize) ===

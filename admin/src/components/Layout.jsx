@@ -76,15 +76,15 @@ export default function Layout({ children }) {
 
       <div className="flex">
         {/* Sidebar — desktop: fixed left, mobile: slide-out drawer */}
-        <aside
-          className={`
-            fixed md:static inset-y-0 left-0 z-50
-            w-64 bg-white border-r border-border flex flex-col
-            transform transition-transform duration-200
-            ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-            min-h-screen
-          `}
-        >
+            <aside
+              className={`
+                fixed md:static inset-y-0 left-0 z-50
+                w-64 bg-white border-r border-border flex flex-col
+                transform transition-transform duration-200
+                ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+                h-screen md:min-h-screen
+              `}
+            >
           <div className="px-5 py-4 border-b border-border flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
               <div className="w-7 h-7 bg-brand rounded-md flex items-center justify-center text-white text-sm font-bold">L</div>

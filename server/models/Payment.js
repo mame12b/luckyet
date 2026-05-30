@@ -27,7 +27,7 @@ const paymentSchema = new mongoose.Schema(
     // Payment method
     paymentMethod: {
       type: String,
-      enum: ["botim", "cbe", "awash", "dashen", "telebirr_intl", "uae_bank", "other"],
+      enum: ["botim", "telebirr", "cbe_bank", "awash_bank", "bank_transfer"],
       required: true,
     },
     paymentCountry: { type: String }, // where the player paid from
