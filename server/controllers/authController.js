@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Streamer = require("../models/Streamer");
+const bcrypt = require("bcryptjs");
 const {
   signAccessToken,
   signRefreshToken,
@@ -7,113 +8,165 @@ const {
   cookieOptionsFor,
   policyFor,
 } = require("../utils/tokens");
+const { recordFailedAttempt, clearFailedAttempts, MAX_ATTEMPTS } = require("../services/authLockout");
 const { logAudit } = require("../services/auditService");
 
-const MAX_FAILED = 5;
-const LOCK_MINUTES = 15;
-
+// ===== REGISTER =====
 exports.register = async (req, res, next) => {
   try {
-    const { fullName, email, phone, password, country, language, referredByCode } = req.body;
+    const { fullName, email, phone, pin, country, language, promoCode } = req.body;
 
-    // Look up referrer if provided
-    let referrer = null;
-    if (referredByCode) {
-      referrer = await Streamer.findOne({
-        promoCode: referredByCode.toUpperCase(),
-        status: "active",
+    // Check uniqueness
+    const exists = await User.findOne({ $or: [{ email }, { phone }] });
+    if (exists) {
+      return res.status(409).json({
+        message: exists.email === email
+          ? "An account with this email already exists"
+          : "An account with this phone number already exists",
       });
     }
 
-    const user = await User.create({
+    // Resolve promo code (optional)
+    let referredByStreamerId, referredByPromoCode;
+    if (promoCode) {
+      const streamer = await Streamer.findOne({ promoCode, status: "active" });
+      if (streamer) {
+        referredByStreamerId = streamer._id;
+        referredByPromoCode = streamer.promoCode;
+      }
+      // Silently ignore invalid codes — no need to block registration
+    }
+
+    const user = new User({
       fullName,
       email,
       phone,
-      password,
       country,
       language: language || "en",
-      referredBy: referrer?._id,
-      referredByCode: referrer ? referredByCode.toUpperCase() : undefined,
+      referredByPromoCode,
+      referredByStreamerId,
     });
-
-const accessToken = signAccessToken(user._id, user.role);
-const refreshToken = signRefreshToken(user._id, user.role);
-
-res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
-
-    await logAudit({
-      actorId: user._id,
-      actorRole: user.role,
-      action: "auth.register",
-      targetType: "User",
-      targetId: user._id,
-      metadata: { email, country, referredByCode: referrer ? referredByCode : null },
-      req,
-    });
-
-    res.status(201).json({
-      user: user.toJSON(),
-      accessToken,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.login = async (req, res, next) => {
-  try {
-    const { emailOrPhone, password } = req.body;
-
-    const user = await User.findOne({
-      $or: [{ email: emailOrPhone.toLowerCase() }, { phone: emailOrPhone }],
-    }).select("+password");
-
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
-    if (!user.isActive) return res.status(403).json({ message: "Account disabled" });
-
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const minutes = Math.ceil((user.lockedUntil - new Date()) / 60000);
-      return res.status(429).json({ message: `Account locked. Try again in ${minutes} minutes.` });
-    }
-
-    const ok = await user.comparePassword(password);
-    if (!ok) {
-      user.failedLoginAttempts += 1;
-      if (user.failedLoginAttempts >= MAX_FAILED) {
-        user.lockedUntil = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
-        user.failedLoginAttempts = 0;
-      }
-      await user.save();
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    // Success — reset counters
-    user.failedLoginAttempts = 0;
-    user.lockedUntil = undefined;
-    user.lastLoginAt = new Date();
-    user.lastLoginIp = req.ip;
+    await user.setPin(pin);
     await user.save();
 
-const accessToken = signAccessToken(user._id, user.role);
-const refreshToken = signRefreshToken(user._id, user.role);
-
-res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
+    // Issue tokens
+    const accessToken = signAccessToken(user._id, user.role);
+    const refreshToken = signRefreshToken(user._id, user.role);
+    res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
 
     await logAudit({
       actorId: user._id,
       actorRole: user.role,
-      action: "auth.login",
+      action: "user.registered",
       targetType: "User",
       targetId: user._id,
+      metadata: { country, promoCode: referredByPromoCode },
       req,
     });
 
-    res.json({ user: user.toJSON(), accessToken });
+    res.status(201).json({ user, accessToken });
+  } catch (err) {
+    if (err.message === "PIN must be exactly 6 digits") {
+      return res.status(400).json({ message: err.message });
+    }
+    next(err);
+  }
+};
+
+// ===== LOGIN =====
+exports.login = async (req, res, next) => {
+  try {
+    const { phone, pin } = req.body;
+
+    const user = await User.findOne({ phone });
+    if (!user || !user.isActive) {
+      // Don't reveal whether the phone is registered
+      return res.status(401).json({ message: "Invalid phone or PIN" });
+    }
+
+    // Check lockout
+    if (user.isLocked()) {
+      const minutesLeft = Math.ceil((user.lockedUntil - new Date()) / 60000);
+      return res.status(429).json({
+        message: `Account locked. Try again in ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}.`,
+        code: "ACCOUNT_LOCKED",
+        lockedUntil: user.lockedUntil,
+      });
+    }
+
+    // Verify credential — accepts PIN OR legacy password during transition
+    const verified = await user.verifyCredential(pin);
+    if (!verified) {
+      const state = await recordFailedAttempt(user);
+      if (state.locked) {
+        return res.status(429).json({
+          message: `Too many failed attempts. Account locked for 1 hour.`,
+          code: "ACCOUNT_LOCKED",
+          lockedUntil: state.lockedUntil,
+        });
+      }
+      return res.status(401).json({
+        message: `Invalid phone or PIN. ${state.remainingAttempts} attempt${state.remainingAttempts === 1 ? "" : "s"} remaining.`,
+        remainingAttempts: state.remainingAttempts,
+      });
+    }
+
+    // Successful login — clear failed attempts
+    await clearFailedAttempts(user);
+
+    // Issue tokens
+    const accessToken = signAccessToken(user._id, user.role);
+    const refreshToken = signRefreshToken(user._id, user.role);
+    res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
+
+    await logAudit({
+      actorId: user._id,
+      actorRole: user.role,
+      action: "user.login",
+      targetType: "User",
+      targetId: user._id,
+      metadata: { credentialType: verified }, // "pin" or "password" (legacy)
+      req,
+    });
+
+    // If user logged in with legacy password, hint that they should set a PIN
+    const requiresPinSetup = verified === "password";
+
+    res.json({ user, accessToken, requiresPinSetup });
   } catch (err) {
     next(err);
   }
 };
 
+// ===== CHANGE PIN (self-service) =====
+exports.changePin = async (req, res, next) => {
+  try {
+    const { currentPin, newPin } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const verified = await user.verifyCredential(currentPin);
+    if (!verified) return res.status(401).json({ message: "Current PIN is incorrect" });
+
+    await user.setPin(newPin);
+    await user.save();
+
+    await logAudit({
+      actorId: user._id,
+      actorRole: user.role,
+      action: "user.pin_changed",
+      targetType: "User",
+      targetId: user._id,
+      req,
+    });
+
+    res.json({ message: "PIN updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ===== REFRESH =====
 exports.refresh = async (req, res, next) => {
   try {
     const token = req.cookies?.refreshToken || req.body?.refreshToken;
@@ -123,14 +176,11 @@ exports.refresh = async (req, res, next) => {
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) return res.status(401).json({ message: "Invalid session" });
 
-    // ENFORCE IDLE TIMEOUT: no activity for X minutes → kick out
     const policy = policyFor(user.role);
     const now = Date.now();
     const lastActivity = decoded.lastActivityAt || decoded.iat * 1000;
-    const idle = now - lastActivity;
 
-    if (idle > policy.idleTimeoutMs) {
-      // Clear the cookie so the client knows to log in again
+    if ((now - lastActivity) > policy.idleTimeoutMs) {
       res.clearCookie("refreshToken", cookieOptionsFor(user.role));
       return res.status(401).json({
         message: "Session expired due to inactivity. Please sign in again.",
@@ -138,7 +188,6 @@ exports.refresh = async (req, res, next) => {
       });
     }
 
-    // Mint new tokens and update lastActivityAt
     const accessToken = signAccessToken(user._id, user.role);
     const refreshToken = signRefreshToken(user._id, user.role);
     res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
@@ -149,8 +198,8 @@ exports.refresh = async (req, res, next) => {
   }
 };
 
+// ===== LOGOUT =====
 exports.logout = async (req, res) => {
-  // Clear with default options — works regardless of role
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -159,11 +208,12 @@ exports.logout = async (req, res) => {
   res.json({ message: "Logged out" });
 };
 
+// ===== ME =====
 exports.me = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({ user: user.toJSON() });
+    res.json({ user });
   } catch (err) {
     next(err);
   }

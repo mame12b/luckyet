@@ -1,27 +1,36 @@
 const { z } = require("zod");
 
-const phoneRegex = /^\+?[1-9]\d{7,14}$/;
+// Phone: E.164 format, +CountryCode + digits
+const phoneSchema = z.string()
+  .trim()
+  .regex(/^\+\d{7,15}$/, "Phone must include country code, e.g. +971501234567");
+
+// 6-digit PIN
+const pinSchema = z.string()
+  .regex(/^\d{6}$/, "PIN must be exactly 6 digits");
 
 exports.registerSchema = z.object({
-  fullName: z.string().min(2).max(100),
-  email: z.string().email().toLowerCase(),
-  phone: z.string().regex(phoneRegex, "Invalid phone number"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain an uppercase letter")
-    .regex(/[a-z]/, "Password must contain a lowercase letter")
-    .regex(/[0-9]/, "Password must contain a number"),
-  country: z.enum(["ET", "AE", "SA", "KW", "QA", "BH", "OM", "OTHER"]),
-  language: z.enum(["en", "am", "ti"]).optional(),
-  referredByCode: z.string().toUpperCase().optional(),
+  fullName: z.string().trim().min(2).max(100),
+  email: z.string().trim().email().toLowerCase(),
+  phone: phoneSchema,
+  pin: pinSchema,
+  country: z.enum(["AE", "SA", "KW", "QA", "BH", "OM", "ET", "ER", "US", "GB"]),
+  language: z.enum(["en", "am", "ti"]).optional().default("en"),
+  promoCode: z.string().trim().toUpperCase().optional(),
 });
 
 exports.loginSchema = z.object({
-  emailOrPhone: z.string().min(3),
-  password: z.string().min(1),
+  phone: phoneSchema,
+  pin: pinSchema,
 });
 
-exports.refreshSchema = z.object({
-  refreshToken: z.string().optional(), // can also come from cookie
+exports.changePinSchema = z.object({
+  currentPin: pinSchema,
+  newPin: pinSchema,
+});
+
+// Admin-only: reset another user's PIN (no current PIN required)
+exports.adminResetPinSchema = z.object({
+  userId: z.string(),
+  newPin: pinSchema,
 });

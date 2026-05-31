@@ -3,8 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import { useAuthStore } from "../store/auth";
 
-// Phone codes for our target markets (GCC + Ethiopia + Eritrea)
-// `country` is the ISO code we infer and send to the backend
 const PHONE_CODES = [
   { code: "+971", country: "AE", flag: "🇦🇪", label: "UAE" },
   { code: "+966", country: "SA", flag: "🇸🇦", label: "Saudi Arabia" },
@@ -22,12 +20,12 @@ export default function Register() {
   const nav = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [phoneCode, setPhoneCode] = useState(PHONE_CODES[0]); // default UAE
+  const [phoneCode, setPhoneCode] = useState(PHONE_CODES[0]);
   const [form, setForm] = useState({
     fullName: "",
     email: "",
-    phoneNumber: "",       // just the digits after the code
-    password: "",
+    phoneNumber: "",
+    pin: "",
     promoCode: "",
   });
   const [error, setError] = useState("");
@@ -35,32 +33,49 @@ export default function Register() {
 
   const update = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
+  const updatePin = (e) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setForm({ ...form, pin: digits });
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validate phone: just digits, 6-12 long
-    const digits = form.phoneNumber.replace(/\D/g, "");
-    if (digits.length < 6 || digits.length > 12) {
+    const phoneDigits = form.phoneNumber.replace(/\D/g, "");
+    if (phoneDigits.length < 6 || phoneDigits.length > 12) {
       setError("Phone number should be 6 to 12 digits, no spaces.");
+      return;
+    }
+    if (!/^\d{6}$/.test(form.pin)) {
+      setError("PIN must be exactly 6 digits.");
       return;
     }
 
     setLoading(true);
     try {
-      const { data } = await api.post("/auth/register", {
+      const payload = {
         fullName: form.fullName.trim(),
         email: form.email.trim().toLowerCase(),
-        phone: `${phoneCode.code}${digits}`,        // full E.164
-        password: form.password,
-        country: phoneCode.country,                  // inferred from phone code
-        language: "en",                              // default; user changes globally later
-        promoCode: form.promoCode.trim().toUpperCase() || undefined,
-      });
+        phone: `${phoneCode.code}${phoneDigits}`,
+        pin: form.pin,                       // STRING, not array
+        country: phoneCode.country,
+        language: "en",
+      };
+      if (form.promoCode.trim()) {
+        payload.promoCode = form.promoCode.trim().toUpperCase();
+      }
+
+      const { data } = await api.post("/auth/register", payload);
       setAuth(data.user, data.accessToken);
       nav("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
+      const msg = err.response?.data?.message
+        || err.response?.data?.errors?.[0]?.message
+        || err.message
+        || "Registration failed";
+      setError(msg);
+      console.error("Registration error:", err.response?.data);
     } finally {
       setLoading(false);
     }
@@ -102,7 +117,6 @@ export default function Register() {
             <div>
               <label className="block text-xs font-semibold mb-1">Phone number</label>
               <div className="flex gap-2">
-                {/* Country code selector */}
                 <select
                   value={phoneCode.code}
                   onChange={(e) => setPhoneCode(PHONE_CODES.find(c => c.code === e.target.value) || PHONE_CODES[0])}
@@ -112,7 +126,6 @@ export default function Register() {
                     <option key={c.country} value={c.code}>{c.flag} {c.code}</option>
                   ))}
                 </select>
-                {/* Digits */}
                 <input
                   type="tel"
                   inputMode="numeric"
@@ -127,17 +140,19 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">Password</label>
+              <label className="block text-xs font-semibold mb-1">Choose a 6-digit PIN</label>
               <input
                 type="password"
-                value={form.password}
-                onChange={update("password")}
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength="6"
+                value={form.pin}
+                onChange={updatePin}
                 required
-                minLength="8"
-                placeholder="At least 8 characters"
-                className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
+                placeholder="● ● ● ● ● ●"
+                className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-2.5 text-lg tracking-[0.4em] text-center font-mono"
               />
-              <p className="text-[10px] text-text-faint mt-1">Use upper, lower & a number</p>
+              <p className="text-[10px] text-text-faint mt-1">You'll use this to log in. Remember it.</p>
             </div>
 
             <div>

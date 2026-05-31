@@ -1,4 +1,7 @@
-require("dotenv").config();
+// Only load .env in development. In production (Docker), env vars come from the orchestrator.
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 
 const path = require("path");
 const express = require("express");
@@ -40,7 +43,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, cb) => {
-      console.log("CORS Check ->", origin);
+      // console.log("CORS Check ->", origin);
 
       // allow server-to-server / curl / health checks
       if (!origin) return cb(null, true);
