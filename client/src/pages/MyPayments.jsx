@@ -23,11 +23,17 @@ export default function MyPayments() {
   useEffect(() => {
     if (!user) { nav("/login?redirect=/my-payments"); return; }
 
+  const load = () => {
+    setLoading(true);
     api.get("/payments/mine")
-      .then(({ data }) => setPayments(data.payments))
-      .catch((err) => setError(err.response?.data?.message || "Failed to load"))
+      .then(({ data }) => setPayments(data.payments || []))
       .finally(() => setLoading(false));
-  }, [user, nav]);
+  };
+  load();
+  const onRefresh = () => load();
+  window.addEventListener("data-refresh", onRefresh);
+  return () => window.removeEventListener("data-refresh", onRefresh);
+}, []);
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">

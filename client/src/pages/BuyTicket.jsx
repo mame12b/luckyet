@@ -26,7 +26,6 @@ export default function BuyTicket() {
   const [promoValid, setPromoValid] = useState(null);
 
   const [payment, setPayment] = useState(null);       // backend-created payment
-  const [txNumber, setTxNumber] = useState("");
   const [receipt, setReceipt] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -103,26 +102,26 @@ export default function BuyTicket() {
   };
 
   // === STEP 2 → STEP 3: upload receipt ===
-  const submitReceipt = async () => {
-    setError("");
-    if (!txNumber.trim()) { setError("Transaction number is required"); return; }
-    if (!receipt) { setError("Receipt image or PDF is required"); return; }
+ const submitReceipt = async () => {
+  setError("");
+  if (!receipt) { setError("Receipt image or PDF is required"); return; }
 
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append("transactionNumber", txNumber.trim());
-      formData.append("receipt", receipt);
-      await api.post(`/payments/${payment._id}/receipt`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setStep(3);
-    } catch (err) {
-      setError(err.response?.data?.message || "Upload failed. Try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  setSubmitting(true);
+  try {
+    const formData = new FormData();
+    formData.append("receipt", receipt);
+    // Use the reference code as the "transaction reference" — admin verifies via receipt image
+    formData.append("transactionNumber", payment.referenceCode);
+    await api.post(`/payments/${payment._id}/receipt`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    setStep(3);
+  } catch (err) {
+    setError(err.response?.data?.message || "Upload failed. Try again.");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const selectedAccount = methods.find((a) => a.method === payment?.paymentMethod);
 
@@ -296,15 +295,6 @@ export default function BuyTicket() {
 
             {/* Upload */}
             <Card title="Upload your receipt">
-              <label className="block text-xs font-semibold mb-1.5">Transaction number / reference from your bank</label>
-              <input
-                type="text"
-                value={txNumber}
-                onChange={(e) => setTxNumber(e.target.value)}
-                placeholder="e.g. TXN1234567"
-                className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm font-mono mb-3"
-              />
-
               <label className="block text-xs font-semibold mb-1.5">Receipt screenshot or PDF</label>
               <label className="block border-2 border-dashed border-border rounded-lg p-5 cursor-pointer hover:border-brand transition bg-white">
                 <input
@@ -340,7 +330,7 @@ export default function BuyTicket() {
               </button>
               <button
                 onClick={submitReceipt}
-                disabled={submitting || !txNumber.trim() || !receipt}
+                disabled={submitting || !receipt}
                 className="flex-1 bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-gold disabled:opacity-50 text-base">
                 {submitting ? "Submitting…" : "Submit receipt"}
               </button>

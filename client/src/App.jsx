@@ -1,5 +1,11 @@
 
 import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { useAuthStore } from "./store/auth";
+import { connectSocket, disconnectSocket } from "./lib/socket";
+import ToastHost from "./components/ToastHost";
+
+
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -16,6 +22,20 @@ import DrawProof from "./pages/DrawProof";
 import DrawLive from "./pages/DrawLive";
 
 export default function App() {
+
+  const user = useAuthStore((s) => s.user);
+const accessToken = useAuthStore((s) => s.accessToken);
+
+useEffect(() => {
+  if (user && accessToken) {
+    connectSocket();
+  } else {
+    disconnectSocket();
+  }
+  return () => disconnectSocket();
+}, [user, accessToken]);
+
+
   return (
     <Routes>
       {/* Full-screen live broadcast — no layout wrapper */}
@@ -45,6 +65,7 @@ export default function App() {
               </div>
             } />
           </Routes>
+          <ToastHost />
         </Layout>
       } />
     </Routes>

@@ -1,334 +1,293 @@
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../lib/api";
+import QRCard from "../components/QRCard";
 
 const SLIDES = [
   {
     eyebrow: "🎰 Live now",
     title: "iPhone 15 Pro Max",
     accent: "+ 100,000 ETB",
-    bodyShort: "Be among the first 5,000 players.",
-    bodyLong: "Every ticket is quantum-verified — impossible to rig.",
-    cta: { label: "View this draw", to: "/draws" },
+    body: "5,000 tickets · Quantum-verified · Impossible to rig",
+    cta: { label: "Buy a ticket", to: "/draws" },
+    badge: { text: "Active", className: "bg-green-100 text-green-800" },
     bg: "from-amber-50 via-white to-burgundy-light",
-    badge: "Active",
   },
   {
     eyebrow: "🏆 Coming soon",
-    title: "Brand New Car",
-    accent: "Suzuki Dzire 2026",
-    bodyShort: "Same trusted draw, bigger prize.",
-    bodyLong: "Reserve your spot when sales open.",
-    cta: { label: "Browse all draws", to: "/draws" },
+    title: "Suzuki Dzire 2026",
+    accent: "Brand new car",
+    body: "The next big draw. Get on the early list for first access.",
+    cta: { label: "Get notified", to: "/register" },
+    badge: { text: "Soon", className: "bg-amber-100 text-amber-800" },
     bg: "from-burgundy-light via-white to-amber-50",
-    badge: "Soon",
   },
   {
     eyebrow: "🏠 Final draw",
     title: "House in Addis",
     accent: "Fully furnished",
-    bodyShort: "The dream prize.",
-    bodyLong: "Three-bedroom apartment with full legal paperwork.",
+    body: "3-bedroom apartment, full legal paperwork.",
     cta: { label: "Get notified", to: "/register" },
+    badge: { text: "Upcoming", className: "bg-burgundy-light text-burgundy" },
     bg: "from-amber-50 via-white to-amber-100",
-    badge: "Upcoming",
   },
 ];
 
+const SLIDE_INTERVAL = 6000;
+
 export default function Home() {
   const [slide, setSlide] = useState(0);
+  const [featured, setFeatured] = useState(null);
 
-  // Auto-rotate every 6 seconds
+  // Auto-rotate slides
   useEffect(() => {
-    const t = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), 6000);
+    const t = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), SLIDE_INTERVAL);
     return () => clearInterval(t);
+  }, []);
+
+  // Load the featured (active) draw for countdown
+  useEffect(() => {
+    api.get("/draws").then(({ data }) => {
+      const active = (data.draws || []).find((d) => d.status === "active");
+      if (active) setFeatured(active);
+    }).catch(() => {});
   }, []);
 
   const current = SLIDES[slide];
 
   return (
-    <div>
-      {/* HERO CAROUSEL */}
-      <section className={`relative bg-gradient-to-br ${current.bg} transition-all duration-700 overflow-hidden`}>
-        <div className="bg-pattern absolute inset-0 opacity-50"></div>
+    <div className="bg-bg">
+      {/* ===== HERO ===== */}
+      <section className={`relative overflow-hidden bg-gradient-to-br ${current.bg} transition-all duration-1000`}>
+        {/* Subtle dot pattern */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: 'radial-gradient(#8b1e3f 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }}></div>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
-          <div className="grid md:grid-cols-2 gap-10 items-center">
-            <div key={slide} className="animate-slideIn">
-              <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-border text-burgundy text-xs font-semibold px-3 py-1.5 rounded-full mb-5 shadow-soft">
-                {current.eyebrow}
+        {/* Floating gold orbs (decoration) */}
+        <div className="absolute top-12 right-12 w-32 h-32 bg-amber-400/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 left-8 w-40 h-40 bg-burgundy/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20 relative">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left: copy */}
+            <div className="animate-slideIn" key={slide}>
+              {/* Eyebrow */}
+              <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur border border-amber-400/40 px-3 py-1.5 rounded-full mb-5 shadow-sm">
+                <span className="text-xs font-bold text-burgundy">{current.eyebrow}</span>
               </div>
-              <h1 className="text-4xl md:text-6xl font-extrabold leading-[1.05] tracking-tight mb-3">
-                {current.title}<br />
-                <span className="text-gradient-gold">{current.accent}</span>
+
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-2">
+                Win a {current.title}
               </h1>
-              <p className="text-text-muted text-base sm:text-lg leading-relaxed mb-6 sm:mb-7 max-w-lg">
-              <span className="font-semibold text-text">{current.bodyShort}</span>{" "}
-              <span className="hidden sm:inline">{current.bodyLong}</span>
+              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5 bg-gradient-to-r from-amber-500 to-amber-700 bg-clip-text text-transparent">
+                {current.accent}
+              </div>
+
+              <p className="text-text-muted text-base sm:text-lg leading-relaxed mb-6 max-w-lg">
+                {current.body}
               </p>
+
+              {/* CTAs */}
               <div className="flex flex-wrap gap-3">
                 <Link
                   to={current.cta.to}
-                  className="bg-brand text-white font-semibold px-6 py-3 rounded-lg hover:bg-brand-dark transition shadow-gold text-sm"
+                  className="inline-flex items-center gap-2 bg-burgundy text-white font-bold px-6 py-3.5 rounded-lg hover:bg-burgundy-dark transition shadow-lg shadow-burgundy/20 active:scale-95"
                 >
                   {current.cta.label} →
                 </Link>
                 <Link
                   to="/how-it-works"
-                  className="bg-white border border-border-strong text-text font-semibold px-6 py-3 rounded-lg hover:bg-surface transition text-sm"
+                  className="inline-flex items-center gap-2 bg-white border-2 border-border text-text font-bold px-6 py-3.5 rounded-lg hover:border-burgundy transition active:scale-95"
                 >
                   How it works
                 </Link>
               </div>
 
-              {/* Trust badges */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-8 text-xs text-text-muted">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-success rounded-full"></span>
-                  ANU Quantum Lab partner
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-success rounded-full"></span>
-                  Verifiable draws
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-burgundy rounded-full"></span>
-                  18+ only
-                </div>
+              {/* Trust row */}
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-6 text-xs text-text-muted">
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>ANU Quantum Lab partner</span>
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Verifiable draws</span>
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-burgundy rounded-full"></span>18+ only</span>
               </div>
             </div>
 
-            {/* Live draw card */}
+            {/* Right: featured prize card with countdown */}
             <div className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-br from-brand to-burgundy rounded-2xl opacity-20 blur-lg"></div>
-              <div className="relative bg-white border border-border rounded-2xl p-6 shadow-card">
-                <div className="flex items-center justify-between mb-5">
-                  <span className="text-xs font-semibold text-burgundy uppercase tracking-wider">Live now</span>
-                  <span className="inline-flex items-center gap-1.5 text-xs text-success bg-success-light px-2.5 py-1 rounded-full font-semibold">
-                    <span className="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></span>
-                    {current.badge}
-                  </span>
-                </div>
-
-                <div className="mb-5">
-                  <div className="text-xs text-text-muted mb-1">Current jackpot prize</div>
-                  <h3 className="text-2xl font-bold">{current.title.replace("Win ", "")}</h3>
-                  <div className="text-gradient-gold text-2xl font-extrabold">{current.accent}</div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-border">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-text-muted">Tickets sold</span>
-                      <span className="font-semibold">0 / 5,000</span>
-                    </div>
-                    <div className="w-full h-2 bg-surface-2 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-brand to-brand-dark rounded-full" style={{ width: "0%" }}></div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-xs text-text-muted">Ticket price</div>
-                      <div className="font-bold text-lg">500 <span className="text-sm font-normal text-text-muted">ETB</span></div>
-                      <div className="text-xs text-text-faint">≈ 16 AED</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-text-muted">Closes</div>
-                      <div className="font-bold text-lg">Jul 14</div>
-                      <div className="text-xs text-text-faint">2026</div>
-                    </div>
+              {featured ? (
+                <FeaturedDrawCard draw={featured} />
+              ) : (
+                <div className="bg-white border-2 border-amber-400/40 rounded-2xl p-6 sm:p-7 shadow-2xl">
+                  <div className="text-center py-8">
+                    <div className="text-5xl mb-3">🎟️</div>
+                    <h3 className="font-bold text-lg mb-1">No active draw right now</h3>
+                    <p className="text-text-muted text-sm">Check back soon for the next one.</p>
                   </div>
                 </div>
-
-                <Link to="/draws" className="block text-center w-full bg-burgundy text-white font-semibold py-3 rounded-lg mt-5 hover:bg-burgundy-dark transition shadow-burgundy text-sm">
-                  Buy a ticket →
-                </Link>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Slide dots */}
-          <div className="flex justify-center gap-2 mt-10">
+          {/* Slide indicators */}
+          <div className="flex justify-center gap-1.5 mt-8">
             {SLIDES.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setSlide(i)}
+                className={`h-1.5 rounded-full transition-all ${i === slide ? "w-8 bg-burgundy" : "w-1.5 bg-burgundy/20 hover:bg-burgundy/40"}`}
                 aria-label={`Slide ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === slide ? "w-10 bg-brand" : "w-2 bg-border-strong hover:bg-text-faint"
-                }`}
+              ></button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== Recent Winners placeholder ===== */}
+      <section className="bg-white py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8">
+            <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">Recent Winners</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold">Real people. Real prizes.</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { name: "Coming soon", prize: "First winner reveal", date: "" },
+              { name: "Coming soon", prize: "Stay tuned", date: "" },
+              { name: "Coming soon", prize: "Tickets selling fast", date: "" },
+            ].map((w, i) => (
+              <div key={i} className="bg-surface border border-border rounded-xl p-5 text-center">
+                <div className="text-4xl mb-2">🏆</div>
+                <div className="font-bold">{w.name}</div>
+                <div className="text-sm text-text-muted">{w.prize}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== QR + How to play ===== */}
+      <section className="bg-surface py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">Scan & play</div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">Take LuckyET with you</h2>
+              <p className="text-text-muted text-base mb-5 leading-relaxed">
+                Scan this QR code from any device to open LuckyET. Share it with friends and family — they can buy tickets and check results instantly.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link to="/draws" className="bg-burgundy text-white font-bold px-5 py-2.5 rounded-lg hover:bg-burgundy-dark transition text-sm">
+                  Browse draws →
+                </Link>
+                <Link to="/how-it-works" className="bg-white border border-border font-semibold px-5 py-2.5 rounded-lg hover:bg-surface transition text-sm">
+                  Learn more
+                </Link>
+              </div>
+            </div>
+            <div className="flex justify-center md:justify-end">
+              <QRCard
+                title="Scan to play"
+                subtitle="Opens LuckyET on your phone"
+                size={160}
               />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* PRICE TIERS STRIP (like Ethio Lottery's tiers) */}
-      <section className="bg-burgundy text-white py-8 md:py-10 px-6">
-        <div className="max-w-7xl mx-auto grid sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-4 text-center">
-          {[
-            { qty: "1", label: "Ticket", price: "500 ETB", hint: "Single entry" },
-            { qty: "5", label: "Tickets", price: "2,500 ETB", hint: "Better odds" },
-            { qty: "10", label: "Tickets", price: "5,000 ETB", hint: "Best value" },
-            { qty: "20", label: "Tickets", price: "10,000 ETB", hint: "Group play" },
-          ].map((t, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className="text-amber-300 text-4xl font-extrabold leading-none mb-1">{t.qty}</div>
-              <div className="text-sm uppercase tracking-wider opacity-80 mb-2">{t.label}</div>
-              <div className="text-white text-lg font-bold">{t.price}</div>
-              <div className="text-amber-200 text-xs mt-0.5">{t.hint}</div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="bg-surface py-16 md:py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-3">How it works</div>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Four steps to win</h2>
-          </div>
-          <div className="grid md:grid-cols-4 gap-5">
-            {[
-              { n: "01", t: "Sign up", d: "Create your account in 60 seconds. Phone + email.", emoji: "✍️" },
-              { n: "02", t: "Buy a ticket", d: "Pay via Botim, bank transfer, or Telebirr.", emoji: "🎫" },
-              { n: "03", t: "Get verified", d: "Upload your receipt. Verified within 24 hours.", emoji: "✓" },
-              { n: "04", t: "Win", d: "Quantum randomness picks the winner. Fully verifiable.", emoji: "🏆" },
-            ].map((s, i) => (
-              <div key={s.n} className="relative">
-                {i < 3 && (
-                  <div className="hidden md:block absolute top-7 left-full w-full h-px border-t-2 border-dashed border-border-strong -z-0"></div>
-                )}
-                <div className="relative bg-white border border-border rounded-xl p-5 hover:shadow-card hover:border-brand transition">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono text-brand font-bold">{s.n}</span>
-                    <span className="text-xl">{s.emoji}</span>
-                  </div>
-                  <div className="font-bold mb-1">{s.t}</div>
-                  <div className="text-sm text-text-muted leading-relaxed">{s.d}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* RECENT WINNERS (placeholders) */}
-      <section className="px-6 py-16 md:py-20 max-w-7xl mx-auto">
-        <div className="flex items-end justify-between mb-10 flex-wrap gap-3">
-          <div>
-            <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-2">Recent winners</div>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Real winners, real prizes</h2>
-            <p className="text-text-muted mt-2 text-sm">Verified quantum draws. Names shown with consent.</p>
-          </div>
-          <span className="text-xs bg-warning-light text-warning font-semibold px-3 py-1.5 rounded-full">
-            Sample previews · First real winners after Draw #1
-          </span>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-5">
-          {[
-            { name: "Sample", initial: "S", prize: "iPhone 15 Pro Max + 100k ETB", from: "Dubai, UAE", date: "Coming soon", ticket: "—" },
-            { name: "Sample", initial: "S", prize: "Suzuki Dzire 2026", from: "Riyadh, KSA", date: "Coming soon", ticket: "—" },
-            { name: "Sample", initial: "S", prize: "Apartment in Addis", from: "Doha, QA", date: "Coming soon", ticket: "—" },
-          ].map((w, i) => (
-            <div key={i} className="bg-white border border-border rounded-xl p-5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-brand-light to-transparent rounded-bl-full opacity-50"></div>
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-brand to-brand-dark rounded-full flex items-center justify-center text-white text-xl font-bold shadow-gold">
-                    {w.initial}
-                  </div>
-                  <div>
-                    <div className="font-bold">{w.name}</div>
-                    <div className="text-xs text-text-muted">{w.from}</div>
-                  </div>
-                </div>
-                <div className="border-t border-border pt-4">
-                  <div className="text-xs text-text-muted uppercase tracking-wide mb-1">Won</div>
-                  <div className="font-semibold mb-2">{w.prize}</div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-text-muted">{w.date}</span>
-                    <span className="font-mono text-text-faint">#{w.ticket}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* TRUST SECTION */}
-      <section className="bg-surface py-16 md:py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-3">Why LuckyET</div>
-            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Built on trust. Powered by physics.</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {[
-              {
-                emoji: "⚛️",
-                title: "Quantum-verifiable",
-                desc: "Every winner is picked using true randomness from the Australian National University quantum lab. The math is public — anyone can verify it.",
-              },
-              {
-                emoji: "🌍",
-                title: "Built for diaspora",
-                desc: "Pay the way you already pay — Botim, CBE, Telebirr. Available in English, አማርኛ, and ትግርኛ. Made by Habesha, for Habesha.",
-              },
-              {
-                emoji: "📋",
-                title: "Transparent operations",
-                desc: "Live ticket counter, public draw history, real winner stories, audit log of every action. Every step on the record.",
-              },
-            ].map((b) => (
-              <div key={b.title} className="bg-white border border-border rounded-xl p-6 hover:border-brand hover:shadow-card transition">
-                <div className="text-3xl mb-3">{b.emoji}</div>
-                <h3 className="text-lg font-bold mb-2">{b.title}</h3>
-                <p className="text-text-muted text-sm leading-relaxed">{b.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
-      <section className="relative bg-gradient-to-br from-burgundy via-burgundy-dark to-burgundy text-white px-6 py-16 overflow-hidden">
-        <div className="bg-pattern absolute inset-0 opacity-20"></div>
-        <div className="relative max-w-3xl mx-auto text-center">
-          <div className="inline-block bg-brand text-burgundy text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-5">
-            🎰 Join now
-          </div>
-          <h2 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Your luck starts<br />
-            <span className="text-amber-300">with one ticket</span>.
-          </h2>
-          <p className="text-white/80 mb-8 max-w-xl mx-auto leading-relaxed">
-            Join Ethiopians and Eritreans across the GCC playing the first quantum-verified lottery built for our diaspora.
-          </p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Link to="/register" className="bg-brand text-burgundy font-bold px-6 py-3 rounded-lg hover:bg-amber-300 transition shadow-gold">
-              Create your account →
-            </Link>
-            <Link to="/draws" className="bg-white/10 backdrop-blur border border-white/30 text-white font-semibold px-6 py-3 rounded-lg hover:bg-white/20 transition">
-              Browse draws
-            </Link>
-          </div>
-
-          {/* Social proof */}
-          <div className="flex items-center justify-center gap-4 mt-10 text-xs opacity-70">
-            <span>Follow us</span>
-            <span>·</span>
-            <span>TikTok</span>
-            <span>·</span>
-            <span>Telegram</span>
-            <span>·</span>
-            <span>Instagram</span>
           </div>
         </div>
       </section>
     </div>
   );
+}
+
+/* ============================================================
+   Featured draw card with live countdown
+============================================================ */
+
+function FeaturedDrawCard({ draw }) {
+  const [timeLeft, setTimeLeft] = useState(() => computeTimeLeft(draw.drawDate));
+
+  useEffect(() => {
+    const t = setInterval(() => setTimeLeft(computeTimeLeft(draw.drawDate)), 1000);
+    return () => clearInterval(t);
+  }, [draw.drawDate]);
+
+  const prize = draw.prizes?.[0] || { name: draw.prizeName };
+  const soldPct = draw.ticketsSold / draw.ticketPoolSize * 100;
+
+  return (
+    <div className="bg-white border-2 border-amber-400/60 rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-400/20 to-transparent rounded-bl-full"></div>
+
+      <div className="flex items-start justify-between mb-4 relative">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-burgundy bg-burgundy-light px-2 py-1 rounded">
+          Live now
+        </div>
+        <div className="text-[10px] text-text-muted">{draw.title}</div>
+      </div>
+
+      <div className="text-xs font-semibold text-text-muted mb-1">Current jackpot</div>
+      <div className="text-2xl sm:text-3xl font-extrabold leading-tight mb-1">{prize.name}</div>
+      {draw.prizes?.length > 1 && (
+        <div className="text-xs text-text-muted mb-3">+ {draw.prizes.length - 1} more {draw.prizes.length === 2 ? "prize" : "prizes"}</div>
+      )}
+
+      {/* Countdown */}
+      <div className="bg-gradient-to-br from-burgundy to-burgundy-dark text-white rounded-xl p-4 my-4">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-2 text-center">
+          {timeLeft.expired ? "Draw closed" : "Draw closes in"}
+        </div>
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+          <CountUnit value={timeLeft.days} label="D" />
+          <CountUnit value={timeLeft.hours} label="H" />
+          <CountUnit value={timeLeft.minutes} label="M" />
+          <CountUnit value={timeLeft.seconds} label="S" />
+        </div>
+      </div>
+
+      {/* Sold progress */}
+      <div className="mb-4">
+        <div className="flex justify-between text-xs mb-1.5">
+          <span className="text-text-muted">Tickets sold</span>
+          <span className="font-semibold">{draw.ticketsSold.toLocaleString()} / {draw.ticketPoolSize.toLocaleString()}</span>
+        </div>
+        <div className="h-2 bg-surface rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-700"
+            style={{ width: `${Math.min(100, soldPct)}%` }}
+          ></div>
+        </div>
+      </div>
+
+      <Link
+        to={`/draws/${draw.slug}/buy`}
+        className="block w-full text-center bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-gold active:scale-95"
+      >
+        Buy ticket — {draw.ticketPriceETB.toLocaleString()} ETB
+      </Link>
+    </div>
+  );
+}
+
+function CountUnit({ value, label }) {
+  return (
+    <div className="bg-white/10 backdrop-blur rounded-md py-2 text-center">
+      <div className="text-xl sm:text-2xl font-extrabold font-mono">{String(value).padStart(2, "0")}</div>
+      <div className="text-[9px] uppercase tracking-wider opacity-70">{label}</div>
+    </div>
+  );
+}
+
+function computeTimeLeft(drawDate) {
+  const now = new Date().getTime();
+  const target = new Date(drawDate).getTime();
+  const diff = target - now;
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+    expired: false,
+  };
 }

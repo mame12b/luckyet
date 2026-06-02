@@ -4,6 +4,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const path = require("path");
+const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -14,6 +15,7 @@ const mongoSanitize = require("express-mongo-sanitize");
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
 const { globalRateLimit } = require("./middleware/rateLimit");
+const socketService = require("./services/socketService");
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
@@ -28,32 +30,33 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-// helmet — relax crossOriginResourcePolicy so uploaded images can be embedded by client
+// Security headers — relax crossOriginResourcePolicy so uploaded receipts
+// can be embedded/displayed by the frontend on a different origin.
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
 
+// CORS — allow our two frontends + any Vercel preview deployments.
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
+  // Belt-and-suspenders fallbacks (Docker nginx ports + Vite dev ports)
+  "http://localhost:8080",
+  "http://localhost:8081",
+  "http://localhost:5173",
+  "http://localhost:5174",
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      // console.log("CORS Check ->", origin);
-
-      // allow server-to-server / curl / health checks
+      // Allow server-to-server / curl / health checks (no Origin header)
       if (!origin) return cb(null, true);
-
-      // allow exact matches
       if (allowedOrigins.includes(origin)) return cb(null, true);
-
-      // allow all vercel preview deployments (IMPORTANT FIX)
+      // Allow Vercel preview URLs (e.g. luckyet-abc123.vercel.app)
       if (origin.includes("vercel.app")) return cb(null, true);
-
       return cb(new Error("CORS blocked: " + origin));
     },
     credentials: true,
@@ -71,16 +74,17 @@ if (process.env.NODE_ENV !== "production") {
 
 app.use("/api", globalRateLimit);
 
-// Serve uploaded files (receipts) — auth-gated to admins in future; public for now
-// Note: filenames are unguessable (16-char hex + timestamp) so direct enumeration is hard.
+// Serve uploaded receipts. Filenames are unguessable hex + timestamp.
+// TODO: gate /uploads behind admin auth in Phase 7 hardening.
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Health
+// Health endpoint — used by Docker healthcheck
 app.get("/", (req, res) => {
   res.json({
     status: "running",
     service: "luckyet-api",
-    version: "0.2.0",
+    version: "0.3.0",
+    socket: !!socketService.io,
     timestamp: new Date().toISOString(),
   });
 });
@@ -102,15 +106,39 @@ app.use((req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// Start
+// === Boot ===
 const PORT = process.env.PORT || 5000;
 
+// Create the HTTP server FIRST, then attach Socket.io to it.
+// Both Express and Socket.io share the same TCP listener.
+const server = http.createServer(app);
+socketService.init(server);
+
 const start = async () => {
-  await connectDB();
-  app.listen(PORT, () => {
-    console.log(`✓ LuckyET API on http://localhost:${PORT}`);
-    console.log(`✓ Environment: ${process.env.NODE_ENV || "development"}`);
-  });
+  try {
+    await connectDB();
+    server.listen(PORT, () => {
+      console.log(`✓ LuckyET API on http://localhost:${PORT}`);
+      console.log(`✓ Environment: ${process.env.NODE_ENV || "development"}`);
+    });
+  } catch (err) {
+    console.error("✗ Failed to start server:", err);
+    process.exit(1);
+  }
 };
+
+// Graceful shutdown — closes sockets and HTTP server before exit.
+const shutdown = (signal) => {
+  console.log(`\n${signal} received, shutting down...`);
+  server.close(() => {
+    console.log("✓ HTTP server closed");
+    process.exit(0);
+  });
+  // Force exit after 10 seconds if graceful shutdown hangs
+  setTimeout(() => process.exit(1), 10000).unref();
+};
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 start();

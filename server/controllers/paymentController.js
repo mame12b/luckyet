@@ -8,6 +8,7 @@ const { getSettings, getPaymentAccountsForCountry } = require("../services/setti
 const { issueTicketsForPayment } = require("../services/ticketService");
 const { logAudit } = require("../services/auditService");
 const { receiptUrl } = require("../middleware/upload");
+const socketService = require("../services/socketService");
 
 // ====== PLAYER ======
 
@@ -115,7 +116,7 @@ exports.initiate = async (req, res, next) => {
           `Transfer exactly ${totalETB} ETB (≈ ${conv.displayAmount} ${conv.displayCurrency})`,
           `Include reference code "${referenceCode}" in the transfer note`,
           "Take a screenshot of the successful transfer",
-          "Return here and upload the receipt with your transaction number",
+          "Return here and upload the receipt",
         ],
       },
     });
@@ -127,14 +128,19 @@ exports.initiate = async (req, res, next) => {
 /**
  * Player uploads receipt (multipart/form-data).
  * Use after multer middleware → req.file is set.
+ *
+ * THIS is where admins get notified — not at initiate — because the payment
+ * isn't "ready for review" until the receipt is attached.
  */
 exports.submitReceipt = async (req, res, next) => {
   try {
     const { transactionNumber } = req.body;
-    const payment = await Payment.findById(req.params.id);
+    const payment = await Payment.findById(req.params.id)
+      .populate("userId", "fullName country")
+      .populate("drawId", "title prizeName");
 
     if (!payment) return res.status(404).json({ message: "Payment not found" });
-    if (payment.userId.toString() !== req.user.id) {
+    if (payment.userId._id.toString() !== req.user.id) {
       return res.status(403).json({ message: "Not your payment" });
     }
     if (payment.status !== "pending_upload") {
@@ -158,6 +164,17 @@ exports.submitReceipt = async (req, res, next) => {
       targetId: payment._id,
       metadata: { transactionNumber, filename: req.file.filename },
       req,
+    });
+
+    // Notify all connected admins: a new payment needs review
+    socketService.emitToAdmins("payment.pending", {
+      paymentId: payment._id,
+      referenceCode: payment.referenceCode,
+      userName: payment.userId.fullName,
+      userCountry: payment.userId.country,
+      drawTitle: payment.drawId?.title || payment.drawId?.prizeName || "a draw",
+      amount: payment.totalETB,
+      submittedAt: new Date(),
     });
 
     res.json({ payment });
@@ -215,12 +232,16 @@ exports.adminListAll = async (req, res, next) => {
 exports.adminVerify = async (req, res, next) => {
   try {
     const { decision, rejectionReason } = req.body;
-    const payment = await Payment.findById(req.params.id);
+    // Populate drawId so the toast can show the draw name
+    const payment = await Payment.findById(req.params.id).populate("drawId", "title prizeName");
     if (!payment) return res.status(404).json({ message: "Payment not found" });
     if (payment.status !== "awaiting_verification") {
       return res.status(400).json({ message: `Payment is in status: ${payment.status}` });
     }
 
+    const drawTitle = payment.drawId?.title || payment.drawId?.prizeName || "a draw";
+
+    // ---------- REJECTED ----------
     if (decision === "rejected") {
       payment.status = "rejected";
       payment.rejectionReason = rejectionReason || "Not specified";
@@ -238,10 +259,18 @@ exports.adminVerify = async (req, res, next) => {
         req,
       });
 
+      // Real-time notify the user — BEFORE return
+      socketService.emitToUser(payment.userId.toString(), "payment.rejected", {
+        paymentId: payment._id,
+        referenceCode: payment.referenceCode,
+        drawTitle,
+        reason: payment.rejectionReason,
+      });
+
       return res.json({ payment, tickets: [] });
     }
 
-    // Verified — issue tickets atomically
+    // ---------- VERIFIED ----------
     payment.status = "verified";
     payment.verifiedBy = req.user.id;
     payment.verifiedAt = new Date();
@@ -260,6 +289,12 @@ exports.adminVerify = async (req, res, next) => {
         streamer.totalSalesETB += payment.totalETB;
         streamer.totalCommissionEarnedETB += commissionETB;
         await streamer.save();
+
+        // Notify streamer in real-time about commission earned
+        socketService.emitToUser(streamer.userId.toString(), "streamer.commission", {
+          amount: commissionETB,
+          ticketsAttributed: payment.quantity,
+        });
       }
     }
 
@@ -271,6 +306,16 @@ exports.adminVerify = async (req, res, next) => {
       targetId: payment._id,
       metadata: { ticketsIssued: tickets.length, totalETB: payment.totalETB },
       req,
+    });
+
+    // Real-time notify the user — payment approved + tickets issued
+    socketService.emitToUser(payment.userId.toString(), "payment.verified", {
+      paymentId: payment._id,
+      referenceCode: payment.referenceCode,
+      quantity: payment.quantity,
+      drawTitle,
+      ticketCount: tickets.length,
+      verifiedAt: payment.verifiedAt,
     });
 
     res.json({ payment, tickets });
