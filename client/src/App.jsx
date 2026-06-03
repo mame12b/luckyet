@@ -20,6 +20,7 @@ import MyPayments from "./pages/MyPayments";
 import Results from "./pages/Results";
 import DrawProof from "./pages/DrawProof";
 import DrawLive from "./pages/DrawLive";
+import StickyBuyCTA from "./components/StickyBuyCTA";
 
 export default function App() {
 
@@ -66,6 +67,7 @@ useEffect(() => {
             } />
           </Routes>
           <ToastHost />
+          <StickyBuyCTA />
         </Layout>
       } />
     </Routes>

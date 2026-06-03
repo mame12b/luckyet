@@ -77,7 +77,7 @@ export default function Login() {
     const digits = phoneNumber.replace(/\D/g, "");
     if (digits.length < 6) { setError("Enter a valid phone number"); return; }
     const pinValue = pin.join("");
-    if (pinValue.length !== 6) { setError("Enter your 6-digit PIN"); return; }
+    if (pinValue.length !== 6) { setError("Enter your 6-digit password"); return; }
 
     setLoading(true);
     try {
@@ -86,11 +86,10 @@ export default function Login() {
         pin: pinValue,
       });
       setAuth(data.user, data.accessToken);
-      const redirect = search.get("redirect") || "/dashboard";
+      const redirect = search.get("redirect") || "/";
       nav(redirect);
     } catch (err) {
-      const resp = err.response?.data;
-      setError(resp?.message || "Login failed");
+      const resp = err.response?.data;      setError(resp?.message || "Login failed");
       if (resp?.remainingAttempts !== undefined) setRemainingAttempts(resp.remainingAttempts);
       if (resp?.lockedUntil) setLockedUntil(new Date(resp.lockedUntil));
       // Clear PIN inputs on failure
@@ -134,7 +133,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-2">6-digit PIN</label>
+              <label className="block text-xs font-semibold mb-2">Password (6 digits)</label>
               <div className="flex gap-2 justify-between">
                 {pin.map((digit, idx) => (
                   <input

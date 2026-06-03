@@ -3,10 +3,6 @@ const jwt = require("jsonwebtoken");
 
 let io = null;
 
-/**
- * Initialize Socket.io on the existing HTTP server.
- * Must be called from server.js with the http.Server instance.
- */
 function init(httpServer) {
   io = new Server(httpServer, {
     cors: {
@@ -20,16 +16,13 @@ function init(httpServer) {
       ].filter(Boolean),
       credentials: true,
     },
-    // Path is the same as default but explicit for nginx mapping clarity
     path: "/socket.io/",
   });
 
-  // Auth middleware — runs on connection handshake
   io.use((socket, next) => {
     try {
-      const token = socket.handshake.auth?.token;
+      const token = socket.handshake.auth && socket.handshake.auth.token;
       if (!token) return next(new Error("auth_required"));
-
       const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
       socket.userId = decoded.userId;
       socket.role = decoded.role;
@@ -40,51 +33,49 @@ function init(httpServer) {
   });
 
   io.on("connection", (socket) => {
-    // Per-user room — for targeted notifications
-    socket.join(`user:${socket.userId}`);
-
-    // Admins also join the admins room for broadcast events
+    console.log("[socket] CONNECT socket=" + socket.id + " userId=" + socket.userId + " role=" + socket.role);
+    socket.join("user:" + socket.userId);
     if (socket.role === "admin" || socket.role === "super_admin") {
       socket.join("admins");
     }
-
-    socket.on("disconnect", () => {
-      // Clean disconnect — rooms auto-leave
+    socket.on("disconnect", (reason) => {
+      console.log("[socket] DISCONNECT socket=" + socket.id + " userId=" + socket.userId + " reason=" + reason);
     });
   });
 
-  console.log("✓ Socket.io initialized");
+  console.log("\u2713 Socket.io initialized");
   return io;
 }
 
-/**
- * Emit to a specific user. No-op if io isn't ready (during startup or tests).
- */
 function emitToUser(userId, event, payload) {
-  if (!io) return;
-  io.to(`user:${userId}`).emit(event, payload);
+  if (!io) {
+    console.log("[socket] EMIT-SKIPPED io not ready event=" + event);
+    return;
+  }
+  const room = "user:" + userId;
+  const roomMap = io.sockets.adapter.rooms.get(room);
+  const size = roomMap ? roomMap.size : 0;
+  console.log("[socket] EMIT " + event + " -> " + room + " (listeners=" + size + ")");
+  io.to(room).emit(event, payload);
 }
 
-/**
- * Emit to all connected admins.
- */
 function emitToAdmins(event, payload) {
   if (!io) return;
+  const roomMap = io.sockets.adapter.rooms.get("admins");
+  const size = roomMap ? roomMap.size : 0;
+  console.log("[socket] EMIT " + event + " -> admins (listeners=" + size + ")");
   io.to("admins").emit(event, payload);
 }
 
-/**
- * Broadcast to everyone connected (rarely used — currently for "draw starting").
- */
 function broadcast(event, payload) {
   if (!io) return;
   io.emit(event, payload);
 }
 
 module.exports = {
-  init,
-  emitToUser,
-  emitToAdmins,
-  broadcast,
+  init: init,
+  emitToUser: emitToUser,
+  emitToAdmins: emitToAdmins,
+  broadcast: broadcast,
   get io() { return io; },
 };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../lib/api";
 import { useAuthStore } from "../store/auth";
 
@@ -18,6 +18,7 @@ const PHONE_CODES = [
 
 export default function Register() {
   const nav = useNavigate();
+  const [search] = useSearchParams();
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const [phoneCode, setPhoneCode] = useState(PHONE_CODES[0]);
@@ -48,7 +49,7 @@ export default function Register() {
       return;
     }
     if (!/^\d{6}$/.test(form.pin)) {
-      setError("PIN must be exactly 6 digits.");
+      setError("Password must be exactly 6 digits.");
       return;
     }
 
@@ -68,7 +69,11 @@ export default function Register() {
 
       const { data } = await api.post("/auth/register", payload);
       setAuth(data.user, data.accessToken);
-      nav("/dashboard");
+      // Redirect intelligently:
+      //   - If they came from a buy flow with ?redirect=, send them back there
+      //   - Otherwise send them to the homepage to discover what's on offer
+      const redirect = search.get("redirect");
+      nav(redirect || "/");
     } catch (err) {
       const msg = err.response?.data?.message
         || err.response?.data?.errors?.[0]?.message
@@ -140,7 +145,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">Choose a 6-digit PIN</label>
+              <label className="block text-xs font-semibold mb-1">Choose a 6-digit password</label>
               <input
                 type="password"
                 inputMode="numeric"

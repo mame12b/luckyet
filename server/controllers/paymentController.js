@@ -309,14 +309,15 @@ exports.adminVerify = async (req, res, next) => {
     });
 
     // Real-time notify the user — payment approved + tickets issued
-    socketService.emitToUser(payment.userId.toString(), "payment.verified", {
-      paymentId: payment._id,
-      referenceCode: payment.referenceCode,
-      quantity: payment.quantity,
-      drawTitle,
-      ticketCount: tickets.length,
-      verifiedAt: payment.verifiedAt,
-    });
+socketService.emitToUser(payment.userId.toString(), "payment.verified", {
+  paymentId: payment._id,
+  referenceCode: payment.referenceCode,
+  quantity: payment.quantity,
+  drawTitle,
+  ticketCount: tickets.length,
+  ticketNumbers: tickets.map((t) => t.ticketNumber),   // <-- the actual numbers
+  verifiedAt: payment.verifiedAt,
+});
 
     res.json({ payment, tickets });
   } catch (err) {

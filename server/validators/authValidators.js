@@ -7,7 +7,7 @@ const phoneSchema = z.string()
 
 // 6-digit PIN
 const pinSchema = z.string()
-  .regex(/^\d{6}$/, "PIN must be exactly 6 digits");
+  .regex(/^\d{6}$/, "Password must be exactly 6 digits");
 
 exports.registerSchema = z.object({
   fullName: z.string().trim().min(2).max(100),

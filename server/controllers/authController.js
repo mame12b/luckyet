@@ -81,7 +81,7 @@ exports.login = async (req, res, next) => {
     const user = await User.findOne({ phone });
     if (!user || !user.isActive) {
       // Don't reveal whether the phone is registered
-      return res.status(401).json({ message: "Invalid phone or PIN" });
+      return res.status(401).json({ message: "Invalid phone or password" });
     }
 
     // Check lockout
@@ -106,7 +106,7 @@ exports.login = async (req, res, next) => {
         });
       }
       return res.status(401).json({
-        message: `Invalid phone or PIN. ${state.remainingAttempts} attempt${state.remainingAttempts === 1 ? "" : "s"} remaining.`,
+        message: `Invalid phone or password. ${state.remainingAttempts} attempt${state.remainingAttempts === 1 ? "" : "s"} remaining.`,
         remainingAttempts: state.remainingAttempts,
       });
     }
@@ -146,7 +146,7 @@ exports.changePin = async (req, res, next) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const verified = await user.verifyCredential(currentPin);
-    if (!verified) return res.status(401).json({ message: "Current PIN is incorrect" });
+    if (!verified) return res.status(401).json({ message: "Current password is incorrect" });
 
     await user.setPin(newPin);
     await user.save();
@@ -160,7 +160,7 @@ exports.changePin = async (req, res, next) => {
       req,
     });
 
-    res.json({ message: "PIN updated successfully" });
+    res.json({ message: "Password updated successfully" });
   } catch (err) {
     next(err);
   }

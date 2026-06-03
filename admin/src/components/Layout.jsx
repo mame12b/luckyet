@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
-import { connectSocket, disconnectSocket, getSocket } from "../lib/socket";
+import { connectSocket, disconnectSocket, onSocketEvent } from "../lib/socket";
 
 const NAV = [
   { to: "/", label: "Overview", icon: "▦" },
@@ -42,24 +42,22 @@ export default function Layout({children}) {
   }, [nav, clear]);
 
   // Socket.io lifecycle: connect when authed, listen for new pending payments
-  useEffect(() => {
-    if (!user || !accessToken) {
-      disconnectSocket();
-      return;
-    }
-    connectSocket();
-    const socket = getSocket();
-    if (!socket) return;
+// Socket.io lifecycle
+useEffect(() => {
+  if (!user || !accessToken) {
+    disconnectSocket();
+    return;
+  }
+  connectSocket();
+}, [user, accessToken]);
 
-    const onPending = () => {
-      setPendingCount((c) => c + 1);
-    };
-    socket.on("payment.pending", onPending);
-
-    return () => {
-      socket.off("payment.pending", onPending);
-    };
-  }, [user, accessToken]);
+// Reconnect-safe event listener for new pending payments
+useEffect(() => {
+  const off = onSocketEvent("payment.pending", () => {
+    setPendingCount((c) => c + 1);
+  });
+  return off;
+}, []);
 
   // Clear badge when admin lands on the pending payments page
   useEffect(() => {

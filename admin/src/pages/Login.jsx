@@ -113,7 +113,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium mb-2">6-digit PIN</label>
+              <label className="block text-xs font-semibold mb-2">Password (6 digits)</label>
               <div className="flex gap-2 justify-between">
                 {pin.map((digit, idx) => (
                   <input
