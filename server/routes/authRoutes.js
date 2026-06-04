@@ -7,12 +7,17 @@ const {
   registerSchema,
   loginSchema,
   changePinSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  
 } = require("../validators/authValidators");
 
 router.post("/register", authRateLimit, validate({ body: registerSchema }), ctrl.register);
 router.post("/login", authRateLimit, validate({ body: loginSchema }), ctrl.login);
 router.post("/refresh", ctrl.refresh);
 router.post("/logout", ctrl.logout);
+router.post("/forgot-password", ctrl.requestPasswordReset);
+router.post("/reset-password", ctrl.completePasswordReset);
 
 router.get("/me", requireAuth, ctrl.me);
 router.post("/change-pin", requireAuth, validate({ body: changePinSchema }), ctrl.changePin);

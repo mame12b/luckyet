@@ -34,3 +34,15 @@ exports.adminResetPinSchema = z.object({
   userId: z.string(),
   newPin: pinSchema,
 });
+
+exports.forgotPasswordSchema = z.object({
+  phone: phoneSchema,
+  reason: z.string().max(500).optional(),
+  contactMethod: z.string().max(100).optional(),
+});
+
+exports.resetPasswordSchema = z.object({
+  phone: phoneSchema,
+  resetCode: z.string().regex(/^\d{6}$/, "Reset code must be 6 digits"),
+  newPin: pinSchema,
+});

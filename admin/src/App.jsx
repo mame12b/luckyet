@@ -9,6 +9,11 @@ import Draws from "./pages/Draws";
 import DrawCreate from "./pages/DrawCreate";
 import DrawEdit from "./pages/DrawEdit";
 import Settings from "./pages/Settings";
+import Users from "./pages/Users";
+import UserDetail from "./pages/UserDetail";
+import PasswordResets from "./pages/PasswordResets";
+
+
 
 export default function App() {
   return (
@@ -26,8 +31,11 @@ export default function App() {
                 <Route path="/draws" element={<Draws />} />
                 <Route path="/draws/new" element={<DrawCreate />} />
                 <Route path="/draws/:id" element={<DrawEdit />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/users/:userId" element={<UserDetail />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<div className="text-center py-12 text-text-muted">Page not found</div>} />
+                <Route path="/password-resets" element={<PasswordResets />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

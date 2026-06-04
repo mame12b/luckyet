@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useAuthStore } from "./store/auth";
 import { connectSocket, disconnectSocket } from "./lib/socket";
 import ToastHost from "./components/ToastHost";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 
 import Layout from "./components/Layout";
@@ -58,6 +60,8 @@ useEffect(() => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/my-tickets" element={<MyTickets />} />
             <Route path="/my-payments" element={<MyPayments />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={
               <div className="max-w-md mx-auto px-6 py-20 text-center">
                 <h1 className="text-3xl font-bold mb-2">Page not found</h1>

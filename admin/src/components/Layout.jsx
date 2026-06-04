@@ -7,7 +7,9 @@ const NAV = [
   { to: "/", label: "Overview", icon: "▦" },
   { to: "/payments/pending", label: "Pending payments", icon: "⌃" },
   { to: "/payments", label: "All payments", icon: "≡" },
+  { to: "/users", label: "Users", icon: "◔" },
   { to: "/draws", label: "Draws", icon: "✦" },
+  { to: "/password-resets", label: "Password resets", icon: "🔑" },
   { to: "/settings", label: "Settings", icon: "⚙" },
 ];
 
