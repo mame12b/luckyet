@@ -142,7 +142,7 @@ export default function PasswordResets() {
 
               <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4 mb-3">
                 <div className="text-[10px] uppercase tracking-widest font-bold text-amber-800 text-center mb-1">One-time reset code</div>
-                <div className="font-mono font-extrabold text-3xl text-center tracking-[0.3em] text-burgundy">{approvedResult.resetCode}</div>
+                <div className="font-mono font-extrabold text-3xl text-center tracking-[0.3em] text-brand">{approvedResult.resetCode}</div>
                 <div className="text-[10px] text-amber-800 text-center mt-2">Expires {new Date(approvedResult.expiresAt).toLocaleString()}</div>
               </div>
 
@@ -150,7 +150,7 @@ export default function PasswordResets() {
                 💡 The user goes to <strong>/reset-password</strong>, enters this code along with their phone, and chooses their own new password. You will never know it.
               </div>
 
-              <button onClick={closeApproved} className="w-full bg-burgundy text-white font-semibold py-2.5 rounded-md hover:bg-burgundy-dark text-sm">
+              <button onClick={closeApproved} className="w-full bg-brand text-white font-semibold py-2.5 rounded-md hover:bg-brand-dark text-sm">
                 Done
               </button>
             </div>

@@ -173,7 +173,7 @@ export default function DrawEdit() {
             {isBroadcasting && (
               <a href={playerUrl(`/draws/${draw.slug}/live`)} target="_blank" rel="noopener noreferrer"
                 className="text-sm font-bold px-4 py-1.5 rounded-md text-white transition shadow-md inline-flex items-center gap-2"
-                style={{ backgroundColor: "#8b1e3f" }}>
+                style={{ backgroundColor: "#4f46e5" }}>
                 <span className="w-1.5 h-1.5 bg-amber-300 rounded-full animate-pulse"></span>
                 View live broadcast
               </a>
@@ -425,7 +425,7 @@ export default function DrawEdit() {
                   <div className="flex gap-2">
                     <a href={playerUrl(drawResult.liveUrl)} target="_blank" rel="noopener noreferrer"
                       className="flex-1 text-center text-sm font-bold text-white px-4 py-2.5 rounded-md hover:opacity-90 transition"
-                      style={{ backgroundColor: "#8b1e3f" }}>
+                      style={{ backgroundColor: "#4f46e5" }}>
                       Open broadcast →
                     </a>
                     <button onClick={copyLiveUrl}

@@ -394,3 +394,74 @@ exports.adminPayoutAction = async (req, res, next) => {
     next(err);
   }
 };
+
+// ====== ADMIN-SIDE: CREATE STREAMER DIRECTLY (admin-only invite flow) ======
+exports.adminCreateStreamer = async (req, res, next) => {
+  try {
+    const {
+      userId,
+      promoCode,
+      commissionPercent,
+      tiktokHandle,
+      instagramHandle,
+      youtubeHandle,
+      payoutMethod,
+      payoutAccountDetails,
+      notes,
+    } = req.body;
+
+    // Find target user
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // No double-streamer
+    const existing = await Streamer.findOne({ userId: user._id });
+    if (existing) {
+      return res.status(409).json({
+        message: `User already has a streamer profile (status: ${existing.status}).`,
+        streamer: existing,
+      });
+    }
+
+    // Promo code must be unique
+    const codeTaken = await Streamer.findOne({ promoCode: promoCode.toUpperCase() });
+    if (codeTaken) {
+      return res.status(409).json({ message: "That promo code is already taken." });
+    }
+
+    // Create as active immediately (admin already vetted)
+    const streamer = await Streamer.create({
+      userId: user._id,
+      promoCode: promoCode.toUpperCase(),
+      commissionPercent: commissionPercent ?? 30,
+      playerDiscountPercent: 0,   // attribution-only per product decision
+      tiktokHandle,
+      instagramHandle,
+      youtubeHandle,
+      payoutMethod: payoutMethod || "bank_transfer",
+      payoutAccountDetails: payoutAccountDetails || "",
+      notes,
+      status: "active",
+    });
+
+    // Promote user's role so they see the streamer dashboard
+    if (user.role === "player") {
+      user.role = "streamer";
+      await user.save();
+    }
+
+    await logAudit({
+      actorId: req.user.id,
+      actorRole: req.user.role,
+      action: "streamer.created_by_admin",
+      targetType: "Streamer",
+      targetId: streamer._id,
+      metadata: { promoCode: streamer.promoCode, targetUserId: user._id },
+      req,
+    });
+
+    res.status(201).json({ message: "Streamer created and activated.", streamer });
+  } catch (err) {
+    next(err);
+  }
+};

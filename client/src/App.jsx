@@ -17,12 +17,19 @@ import DrawDetail from "./pages/DrawDetail";
 import BuyTicket from "./pages/BuyTicket";
 import HowItWorks from "./pages/HowItWorks";
 import Dashboard from "./pages/Dashboard";
+import StreamerDashboard from "./pages/StreamerDashboard";
 import MyTickets from "./pages/MyTickets";
 import MyPayments from "./pages/MyPayments";
 import Results from "./pages/Results";
 import DrawProof from "./pages/DrawProof";
 import DrawLive from "./pages/DrawLive";
 import StickyBuyCTA from "./components/StickyBuyCTA";
+
+function DashboardRouter() {
+  const role = useAuthStore((s) => s.user?.role);
+  if (role === "streamer") return <StreamerDashboard />;
+  return <Dashboard />;
+}
 
 export default function App() {
 
@@ -57,7 +64,7 @@ useEffect(() => {
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<DashboardRouter />} />
             <Route path="/my-tickets" element={<MyTickets />} />
             <Route path="/my-payments" element={<MyPayments />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

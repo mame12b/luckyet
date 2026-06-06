@@ -24,7 +24,7 @@ const streamerSchema = new mongoose.Schema(
     youtubeHandle: { type: String, trim: true },
 
     // Commission
-    commissionPercent: { type: Number, required: true, min: 0, max: 30, default: 7 },
+    commissionPercent: { type: Number, required: true, min: 0, max: 50, default: 30 },
     playerDiscountPercent: { type: Number, default: 0, min: 0, max: 50 }, // discount given to players using their code
 
     // Stats (denormalized for fast dashboard reads)
