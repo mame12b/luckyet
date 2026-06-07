@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../lib/api";
 import { useAuthStore } from "../store/auth";
 import CopyButton from "../components/CopyButton";
+import { getStoredPromo } from "../lib/promo";
 
 const METHOD_INFO = {
   botim: { icon: "📱", label: "Botim", subtitle: "Best for UAE / GCC" },
@@ -50,6 +51,12 @@ export default function BuyTicket() {
       .catch((err) => setError(err.response?.data?.message || "Failed to load draw"));
   }, [slug, user, nav]);
 
+
+  // On mount: pre-fill promo code from localStorage (set when arriving via QR scan)
+  useEffect(() => {
+    const stored = getStoredPromo();
+    if (stored) setPromoCode(stored);
+  }, []);
   // Promo validation (debounced)
   useEffect(() => {
     if (!promoCode.trim()) { setPromoValid(null); return; }
@@ -209,8 +216,11 @@ export default function BuyTicket() {
                 className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-2.5 text-sm font-mono uppercase"
               />
               {promoValid?.valid && (
-                <p className="text-xs text-success mt-1.5">
-                  ✓ {promoValid.streamerName}'s code · {promoValid.playerDiscountPercent}% off
+                <p className="text-xs text-green-700 font-semibold mt-1">
+                  ✓ Applied — your friend <strong>{promoValid.streamerName}</strong> earns commission
+                  {promoValid.playerDiscountPercent > 0 && (
+                    <> · <strong>{promoValid.playerDiscountPercent}% off</strong> for you</>
+                  )}
                 </p>
               )}
               {promoValid && !promoValid.valid && promoCode.trim() && (
