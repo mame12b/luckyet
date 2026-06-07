@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../lib/api";
 import QRCard from "../components/QRCard";
+import { capturePromoFromUrl, getStoredPromo, clearStoredPromo } from "../lib/promo";
 
 const SLIDES = [
   {
@@ -38,6 +39,7 @@ const SLIDE_INTERVAL = 6000;
 export default function Home() {
   const [slide, setSlide] = useState(0);
   const [featured, setFeatured] = useState(null);
+  const [promo, setPromo] = useState(null);
 
   // Auto-rotate slides
   useEffect(() => {
@@ -55,8 +57,50 @@ export default function Home() {
 
   const current = SLIDES[slide];
 
+  // Capture promo code from QR scan (?promo=ABELA10), validate it,
+  // then keep showing a banner until the user completes a purchase or dismisses it.
+  // Capture promo code from QR scan (?promo=ABELA10) OR from previous visit
+  useEffect(() => {
+    const code = capturePromoFromUrl() || getStoredPromo();
+    if (!code) return;
+    api.get(`/streamers/validate/${code}`)
+      .then(({ data }) => {
+        if (data.valid) setPromo(data);
+        else clearStoredPromo();
+      })
+      .catch(() => clearStoredPromo());
+  }, []);
+
+  const dismissPromo = () => {
+    clearStoredPromo();
+    setPromo(null);
+  };
+
+
   return (
     <div className="bg-bg">
+
+            {/* Promo banner — visible when a buyer arrived via promoter's QR */}
+      {promo && (
+        <div className="bg-burgundy text-white py-3 px-4 animate-slideIn">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-sm flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-base">🎁</span>
+              <span className="min-w-0">
+                Shopping with <span className="font-mono font-bold tracking-wider">{promo.promoCode}</span> —
+                your friend <strong>{promo.streamerName}</strong> earns commission on your tickets.
+              </span>
+            </div>
+            <button
+              onClick={dismissPromo}
+              className="text-white/70 hover:text-white text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap"
+              aria-label="Remove promo code"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
       {/* ===== HERO ===== */}
       <section className={`relative overflow-hidden bg-gradient-to-br ${current.bg} transition-all duration-1000`}>
         {/* Subtle dot pattern */}
