@@ -180,5 +180,120 @@
     "loading": "በመጫን ላይ...",
     "close": "ዝጋ",
     "remove": "ያስወግዱ"
+  },
+  "dashboard": {
+    "eyebrow": "ዳሽቦርድ",
+    "welcomeBack": "እንኳን ደህና መጡ፣ {{name}}",
+    "subtitle": "የ LuckyET እንቅስቃሴዎ ፈጣን እይታ።",
+    "stats": {
+      "activeTickets": "ንቁ ቲኬቶች",
+      "activeTicketsHint": "ኳንተም-የተረጋገጡ ግቤቶች",
+      "pendingPayments": "በመጠባበቅ ላይ ያሉ ክፍያዎች",
+      "pendingPaymentsHint": "የእርስዎን እርምጃ ወይም ማረጋገጥ ይፈልጋሉ",
+      "totalSpent": "ጠቅላላ ወጪ",
+      "totalSpentHint_one": "{{count}} የተረጋገጠ ክፍያ",
+      "totalSpentHint_other": "{{count}} የተረጋገጡ ክፍያዎች"
+    },
+    "pending": {
+      "title": "ትኩረትዎን ይፈልጋል",
+      "subtitle_one": "{{count}} ክፍያ በመጠባበቅ ላይ ነው",
+      "subtitle_other": "{{count}} ክፍያዎች በመጠባበቅ ላይ ናቸው",
+      "completePayment": "ክፍያ ይጨርሱ →",
+      "ticket_one": "ቲኬት",
+      "ticket_other": "ቲኬቶች"
+    },
+    "tickets": {
+      "title": "የእርስዎ ንቁ ቲኬቶች",
+      "subtitleEmpty": "ለመጀመር የመጀመሪያ ቲኬትዎን ይግዙ",
+      "subtitle_one": "{{count}} ቲኬት ለድልድሉ ዝግጁ ነው",
+      "subtitle_other": "{{count}} ቲኬቶች ለድልድሉ ዝግጁ ናቸው",
+      "viewAll": "ሁሉንም ይመልከቱ →",
+      "emptyTitle": "ገና ንቁ ቲኬት የለም",
+      "emptyBody": "ንቁ ድልድሎችን ይመልከቱ እና የመጀመሪያ ቲኬትዎን ይግዙ።",
+      "browseDraws": "ንቁ ድልድሎችን ይመልከቱ",
+      "ticketNo": "የቲኬት ቁ.",
+      "active": "ንቁ",
+      "quantumVerified": "ኳንተም-የተረጋገጠ"
+    },
+    "payments": {
+      "title": "የቅርብ ጊዜ ክፍያዎች",
+      "viewAll": "ሁሉንም ይመልከቱ →",
+      "empty": "ገና የክፍያ ታሪክ የለም።"
+    },
+    "status": {
+      "pending_upload": "ለመስቀል በመጠባበቅ ላይ",
+      "awaiting_verification": "ለማረጋገጥ በመጠባበቅ ላይ",
+      "verified": "ተረጋግጧል",
+      "rejected": "ተቀባይነት አላገኘም",
+      "expired": "ጊዜው አልፎበታል"
+    }
+  },
+  "buy": {
+    "loadFailed": "ድልድል መጫን አልተሳካም",
+    "cantBuy": "ቲኬት መግዛት አልተቻለም",
+    "browseDraws": "← ድልድሎችን ይመልከቱ",
+    "back": "← ተመለስ",
+    "stepper": {
+      "order": "ትዕዛዝ",
+      "pay": "ክፍያ",
+      "done": "ተጠናቋል"
+    },
+    "step1": {
+      "quantityTitle": "ስንት ቲኬቶች?",
+      "maxNote": "በአንድ ግዢ ቢበዛ 50",
+      "methodTitle": "እንዴት ይከፍላሉ?",
+      "noMethods": "ምንም የክፍያ ዘዴ አልተዘጋጀም።",
+      "forYou": "✓ ለእርስዎ",
+      "promoTitle": "የማስተዋወቂያ ኮድ (አማራጭ)",
+      "promoPlaceholder": "HABESHA10",
+      "promoApplied": "✓ ተግባራዊ ሆኗል — ጓደኛዎ <1>{{name}}</1> ኮሚሽን ያገኛል",
+      "promoDiscount": " · <1>{{percent}}% ቅናሽ</1> ለእርስዎ",
+      "promoInvalid": "ልክ ያልሆነ ወይም ጊዜው ያለፈ ኮድ",
+      "subtotal": "ድምር ({{qty}} × {{price}})",
+      "discount": "ቅናሽ",
+      "total": "ጠቅላላ",
+      "starting": "በመጀመር ላይ…",
+      "continue": "ወደ ክፍያ ቀጥል →",
+      "couldNotStart": "ክፍያ መጀመር አልተቻለም። ዳግም ይሞክሩ።"
+    },
+    "step2": {
+      "amountTitle": "ይህን ትክክለኛ መጠን ይላኩ",
+      "approx": "≈ {{amount}} {{currency}}",
+      "referenceNote": "የማጣቀሻ ኮድ — በማስተላለፊያ ማስታወሻ ላይ ያካትቱ",
+      "copy": "ቅዳ",
+      "sendTo": "ይላኩ ወደ · {{label}}",
+      "accountNumber": "የሂሳብ ቁጥር",
+      "accountName": "የሂሳብ ስም",
+      "uploadTitle": "ደረሰኝዎን ይስቀሉ",
+      "receiptLabel": "የደረሰኝ ቅጽበታዊ ምስል ወይም PDF",
+      "tapToChange": "ለመለወጥ ይንኩ",
+      "tapToUpload": "ለመስቀል ይንኩ",
+      "fileTypes": "JPG, PNG, ወይም PDF · ቢበዛ 5MB",
+      "back": "← ተመለስ",
+      "submitting": "በማስገባት ላይ…",
+      "submit": "ደረሰኝ አስገባ",
+      "receiptRequired": "የደረሰኝ ምስል ወይም PDF ያስፈልጋል",
+      "uploadFailed": "መስቀል አልተሳካም። ዳግም ይሞክሩ።"
+    },
+    "step3": {
+      "title": "ደረሰኝ ተልኳል!",
+      "body": "ክፍያዎን በ <1>24 ሰዓታት</1> ውስጥ እንገመግማለን። ከተረጋገጠ በኋላ የእርስዎ ኳንተም ቲኬቶች በ <3>የእኔ ቲኬቶች</3> ውስጥ ይታያሉ።",
+      "reference": "ማጣቀሻ",
+      "saveTip": "እንድንገናኝዎት ካስፈለግን ይህን ያስቀምጡት።",
+      "viewMyPayments": "የእኔን ክፍያዎች ይመልከቱ",
+      "browseMore": "ተጨማሪ ድልድሎችን ይመልከቱ"
+    },
+    "methods": {
+      "botim": "Botim",
+      "botimSubtitle": "ለUAE / GCC የተሻለ",
+      "telebirr": "Telebirr Intl",
+      "telebirrSubtitle": "ዓለም አቀፍ ዝውውር",
+      "cbe_bank": "CBE",
+      "cbe_bankSubtitle": "በኢትዮጵያ ውስጥ",
+      "awash_bank": "አዋሽ ባንክ",
+      "awash_bankSubtitle": "በኢትዮጵያ ውስጥ",
+      "bank_transfer": "የባንክ ዝውውር",
+      "bank_transferSubtitle": "የአካባቢ ባንክ"
+    }
   }
 }

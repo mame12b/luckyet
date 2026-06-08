@@ -180,5 +180,120 @@
     "loading": "Loading...",
     "close": "Close",
     "remove": "Remove"
+  },
+  "dashboard": {
+    "eyebrow": "Dashboard",
+    "welcomeBack": "Welcome back, {{name}}",
+    "subtitle": "Here's a quick view of your LuckyET activity.",
+    "stats": {
+      "activeTickets": "Active tickets",
+      "activeTicketsHint": "Quantum-verified entries",
+      "pendingPayments": "Pending payments",
+      "pendingPaymentsHint": "Need your action or verification",
+      "totalSpent": "Total spent",
+      "totalSpentHint_one": "{{count}} verified payment",
+      "totalSpentHint_other": "{{count}} verified payments"
+    },
+    "pending": {
+      "title": "Needs your attention",
+      "subtitle_one": "{{count}} payment is waiting",
+      "subtitle_other": "{{count}} payments are waiting",
+      "completePayment": "Complete payment →",
+      "ticket_one": "ticket",
+      "ticket_other": "tickets"
+    },
+    "tickets": {
+      "title": "Your active tickets",
+      "subtitleEmpty": "Buy your first ticket to get started",
+      "subtitle_one": "{{count}} ticket ready for the draw",
+      "subtitle_other": "{{count}} tickets ready for the draw",
+      "viewAll": "View all →",
+      "emptyTitle": "No active tickets yet",
+      "emptyBody": "Browse active draws and buy your first ticket.",
+      "browseDraws": "Browse active draws",
+      "ticketNo": "Ticket No.",
+      "active": "Active",
+      "quantumVerified": "Quantum-verified"
+    },
+    "payments": {
+      "title": "Recent payments",
+      "viewAll": "View all →",
+      "empty": "No payment history yet."
+    },
+    "status": {
+      "pending_upload": "Awaiting upload",
+      "awaiting_verification": "Awaiting verification",
+      "verified": "Verified",
+      "rejected": "Rejected",
+      "expired": "Expired"
+    }
+  },
+  "buy": {
+    "loadFailed": "Failed to load draw",
+    "cantBuy": "Cannot buy ticket",
+    "browseDraws": "← Browse draws",
+    "back": "← Back",
+    "stepper": {
+      "order": "Order",
+      "pay": "Pay",
+      "done": "Done"
+    },
+    "step1": {
+      "quantityTitle": "How many tickets?",
+      "maxNote": "Max 50 per purchase",
+      "methodTitle": "How will you pay?",
+      "noMethods": "No payment methods configured.",
+      "forYou": "✓ For you",
+      "promoTitle": "Promo code (optional)",
+      "promoPlaceholder": "HABESHA10",
+      "promoApplied": "✓ Applied — your friend <1>{{name}}</1> earns commission",
+      "promoDiscount": " · <1>{{percent}}% off</1> for you",
+      "promoInvalid": "Invalid or expired code",
+      "subtotal": "Subtotal ({{qty}} × {{price}})",
+      "discount": "Discount",
+      "total": "Total",
+      "starting": "Starting…",
+      "continue": "Continue to payment →",
+      "couldNotStart": "Could not start payment. Try again."
+    },
+    "step2": {
+      "amountTitle": "Send this exact amount",
+      "approx": "≈ {{amount}} {{currency}}",
+      "referenceNote": "Reference code — include in transfer note",
+      "copy": "Copy",
+      "sendTo": "Send to · {{label}}",
+      "accountNumber": "Account number",
+      "accountName": "Account name",
+      "uploadTitle": "Upload your receipt",
+      "receiptLabel": "Receipt screenshot or PDF",
+      "tapToChange": "Tap to change",
+      "tapToUpload": "Tap to upload",
+      "fileTypes": "JPG, PNG, or PDF · max 5MB",
+      "back": "← Back",
+      "submitting": "Submitting…",
+      "submit": "Submit receipt",
+      "receiptRequired": "Receipt image or PDF is required",
+      "uploadFailed": "Upload failed. Try again."
+    },
+    "step3": {
+      "title": "Receipt submitted!",
+      "body": "We'll review your payment within <1>24 hours</1>. Once verified, your quantum tickets will appear in <3>My tickets</3>.",
+      "reference": "Reference",
+      "saveTip": "Save this in case we need to contact you.",
+      "viewMyPayments": "View my payments",
+      "browseMore": "Browse more draws"
+    },
+    "methods": {
+      "botim": "Botim",
+      "botimSubtitle": "Best for UAE / GCC",
+      "telebirr": "Telebirr Intl",
+      "telebirrSubtitle": "International transfer",
+      "cbe_bank": "CBE",
+      "cbe_bankSubtitle": "Inside Ethiopia",
+      "awash_bank": "Awash Bank",
+      "awash_bankSubtitle": "Inside Ethiopia",
+      "bank_transfer": "Bank transfer",
+      "bank_transferSubtitle": "Local bank"
+    }
   }
 }
