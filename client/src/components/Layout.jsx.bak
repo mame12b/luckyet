@@ -1,24 +1,22 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../store/auth";
 import LanguageSwitcher from "./LanguageSwitcher";
 
+const NAV_LINKS = [
+  { to: "/draws", label: "Buy Lotteries" },
+  { to: "/results", label: "Results" },
+  { to: "/how-it-works", label: "How it Works" },
+];
+
 export default function Layout({ children }) {
-  const { t } = useTranslation();
   const { user, clear } = useAuthStore();
   const nav = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const profileRef = useRef(null);
-
-  // Nav links are derived inside the component so they re-render on language change
-  const NAV_LINKS = [
-    { to: "/draws",        label: t("nav.buyLotteries") },
-    { to: "/results",      label: t("nav.results") },
-    { to: "/how-it-works", label: t("nav.howItWorks") },
-  ];
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -32,19 +30,38 @@ export default function Layout({ children }) {
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
+  // Lock body scroll when mobile menu open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  // Session expired listener
+  useEffect(() => {
+    const handler = (e) => {
+      alert(e.detail?.reason === "idle"
+        ? "Signed out due to inactivity. Please sign in again."
+        : "Your session expired. Please sign in again.");
+      nav("/login");
+    };
+    window.addEventListener("session-expired", handler);
+    return () => window.removeEventListener("session-expired", handler);
+  }, [nav]);
+
   const handleSignOut = () => {
     clear();
     setProfileOpen(false);
-    nav("/login");
+    setMobileOpen(false);
+    nav("/");
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-bg text-text">
-      {/* Top promo banner */}
+      {/* Promo strip */}
       <div className="bg-burgundy text-white text-center text-[11px] sm:text-xs py-1.5 px-3">
-        <span className="hidden sm:inline">{t("banner.launchDrawFull")}</span>
-        <span className="sm:hidden">{t("banner.launchDrawShort")}</span>
-        <Link to="/draws" className="underline font-semibold">{t("banner.buyTicketCta")}</Link>
+        <span className="hidden sm:inline">🎰 Launch draw is live — iPhone 15 Pro Max + 100k ETB · </span>
+        <span className="sm:hidden">🎰 Launch draw is live · </span>
+        <Link to="/draws" className="underline font-semibold">Buy a ticket →</Link>
       </div>
 
       {/* Nav */}
@@ -55,6 +72,7 @@ export default function Layout({ children }) {
             <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center text-white text-base font-extrabold shadow-gold">L</div>
             <span>LuckyET</span>
           </Link>
+
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6 text-sm font-semibold">
             {NAV_LINKS.map(l => (
@@ -66,10 +84,11 @@ export default function Layout({ children }) {
             {user && (
               <NavLink to="/dashboard"
                 className={({ isActive }) => isActive ? "text-brand-dark" : "text-text hover:text-brand-dark transition"}>
-                {t("nav.dashboard")}
+                Dashboard
               </NavLink>
             )}
           </div>
+
           {/* Right side */}
           <div className="flex items-center gap-2">
             <div className="hidden md:block">
@@ -87,6 +106,7 @@ export default function Layout({ children }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
                   </svg>
                 </button>
+
                 {profileOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white border border-border rounded-lg shadow-card overflow-hidden">
                     <div className="px-4 py-3 border-b border-border bg-surface">
@@ -94,13 +114,13 @@ export default function Layout({ children }) {
                       <div className="text-xs text-text-muted truncate">{user.email}</div>
                     </div>
                     <div className="py-1">
-                      <Link to="/dashboard" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm hover:bg-surface">{t("nav.dashboard")}</Link>
-                      <Link to="/my-tickets" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm hover:bg-surface">{t("nav.myTickets")}</Link>
-                      <Link to="/my-payments" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm hover:bg-surface">{t("nav.myPayments")}</Link>
+                      <Link to="/dashboard" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm hover:bg-surface">Dashboard</Link>
+                      <Link to="/my-tickets" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm hover:bg-surface">My tickets</Link>
+                      <Link to="/my-payments" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm hover:bg-surface">My payments</Link>
                     </div>
                     <div className="border-t border-border py-1">
                       <button onClick={handleSignOut} className="block w-full text-left px-4 py-2 text-sm text-danger hover:bg-danger-light">
-                        {t("nav.signOut")}
+                        Sign out
                       </button>
                     </div>
                   </div>
@@ -108,17 +128,18 @@ export default function Layout({ children }) {
               </div>
             ) : (
               <>
-                <Link to="/login" className="hidden sm:inline-block text-sm font-semibold text-text-muted hover:text-text px-3 py-2">{t("nav.login")}</Link>
+                <Link to="/login" className="hidden sm:inline-block text-sm font-semibold text-text-muted hover:text-text px-3 py-2">Login</Link>
                 <Link to="/register" className="text-sm bg-brand text-white font-bold px-3 sm:px-4 py-2 rounded-lg hover:bg-brand-dark transition shadow-gold">
-                  {t("nav.register")}
+                  Register
                 </Link>
               </>
             )}
+
             {/* Mobile menu trigger */}
             <button
               onClick={() => setMobileOpen(true)}
               className="md:hidden p-2 -mr-2 hover:bg-surface rounded-md"
-              aria-label={t("nav.openMenu")}>
+              aria-label="Open menu">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/>
               </svg>
@@ -133,13 +154,14 @@ export default function Layout({ children }) {
           <div className="md:hidden fixed inset-0 bg-black/40 z-50" onClick={() => setMobileOpen(false)} />
           <div className="md:hidden fixed inset-y-0 right-0 w-72 max-w-[85vw] bg-white z-50 flex flex-col animate-slideIn shadow-2xl">
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <span className="font-bold text-lg">{t("nav.menu")}</span>
+              <span className="font-bold text-lg">Menu</span>
               <button onClick={() => setMobileOpen(false)} className="p-1 hover:bg-surface rounded">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
               </button>
             </div>
+
             <nav className="flex-1 overflow-y-auto p-2">
               {NAV_LINKS.map(l => (
                 <Link key={l.to} to={l.to}
@@ -152,16 +174,16 @@ export default function Layout({ children }) {
               {user && (
                 <>
                   <div className="border-t border-border my-2"></div>
-                  <Link to="/dashboard" className="block px-4 py-3 rounded-md text-base font-semibold text-text hover:bg-surface">{t("nav.dashboard")}</Link>
-                  <Link to="/my-tickets" className="block px-4 py-3 rounded-md text-base font-semibold text-text hover:bg-surface">{t("nav.myTickets")}</Link>
-                  <Link to="/my-payments" className="block px-4 py-3 rounded-md text-base font-semibold text-text hover:bg-surface">{t("nav.myPayments")}</Link>
+                  <Link to="/dashboard" className="block px-4 py-3 rounded-md text-base font-semibold text-text hover:bg-surface">Dashboard</Link>
+                  <Link to="/my-tickets" className="block px-4 py-3 rounded-md text-base font-semibold text-text hover:bg-surface">My tickets</Link>
+                  <Link to="/my-payments" className="block px-4 py-3 rounded-md text-base font-semibold text-text hover:bg-surface">My payments</Link>
                 </>
               )}
             </nav>
 
-            {/* Language switcher */}
+                        {/* Language switcher */}
             <div className="border-t border-border p-4">
-              <div className="text-xs text-text-muted mb-2 font-semibold uppercase tracking-wider">{t("nav.language")}</div>
+              <div className="text-xs text-text-muted mb-2 font-semibold uppercase tracking-wider">Language</div>
               <LanguageSwitcher />
             </div>
 
@@ -177,16 +199,16 @@ export default function Layout({ children }) {
                   </div>
                 </div>
                 <button onClick={handleSignOut} className="w-full text-sm text-danger font-semibold py-2 hover:bg-danger-light rounded">
-                  {t("nav.signOut")}
+                  Sign out
                 </button>
               </div>
             ) : (
               <div className="border-t border-border p-4 space-y-2">
                 <Link to="/login" className="block w-full text-center bg-white border border-border text-text font-semibold py-2.5 rounded-md hover:bg-surface">
-                  {t("nav.login")}
+                  Login
                 </Link>
                 <Link to="/register" className="block w-full text-center bg-brand text-white font-bold py-2.5 rounded-md shadow-gold">
-                  {t("nav.register")}
+                  Create account
                 </Link>
               </div>
             )}
@@ -194,7 +216,6 @@ export default function Layout({ children }) {
         </>
       )}
 
-      {/* Page content */}
       <main className="flex-1">{children}</main>
 
       {/* Footer */}
@@ -207,27 +228,27 @@ export default function Layout({ children }) {
                 <span className="font-extrabold">LuckyET</span>
               </div>
               <p className="text-white/70 text-xs leading-relaxed">
-                {t("footer.tagline")}
+                Quantum-verifiable lottery for the Ethiopian & Eritrean diaspora.
               </p>
             </div>
             <div>
-              <div className="font-bold mb-2 text-amber-300 text-xs uppercase tracking-wider">{t("footer.explore")}</div>
+              <div className="font-bold mb-2 text-amber-300 text-xs uppercase tracking-wider">Explore</div>
               <ul className="space-y-1.5 text-white/80 text-sm">
-                <li><Link to="/draws" className="hover:text-white">{t("footer.buy")}</Link></li>
-                <li><Link to="/results" className="hover:text-white">{t("footer.results")}</Link></li>
-                <li><Link to="/how-it-works" className="hover:text-white">{t("footer.howItWorks")}</Link></li>
+                <li><Link to="/draws" className="hover:text-white">Buy</Link></li>
+                <li><Link to="/results" className="hover:text-white">Results</Link></li>
+                <li><Link to="/how-it-works" className="hover:text-white">How it works</Link></li>
               </ul>
             </div>
             <div>
-              <div className="font-bold mb-2 text-amber-300 text-xs uppercase tracking-wider">{t("footer.help")}</div>
+              <div className="font-bold mb-2 text-amber-300 text-xs uppercase tracking-wider">Help</div>
               <ul className="space-y-1.5 text-white/80 text-sm">
-                <li>{t("footer.faq")}</li>
-                <li>{t("footer.support")}</li>
-                <li>{t("footer.playResponsibly")}</li>
+                <li>FAQ</li>
+                <li>Support</li>
+                <li>Play responsibly</li>
               </ul>
             </div>
             <div>
-              <div className="font-bold mb-2 text-amber-300 text-xs uppercase tracking-wider">{t("footer.connect")}</div>
+              <div className="font-bold mb-2 text-amber-300 text-xs uppercase tracking-wider">Connect</div>
               <ul className="space-y-1.5 text-white/80 text-sm">
                 <li>TikTok</li>
                 <li>Telegram</li>
@@ -236,10 +257,10 @@ export default function Layout({ children }) {
             </div>
           </div>
           <div className="border-t border-white/10 pt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/60">
-            <div>{t("footer.copyright", { year: new Date().getFullYear() })}</div>
+            <div>© {new Date().getFullYear()} LuckyET</div>
             <div className="flex items-center gap-3">
-              <span className="bg-white/10 px-2 py-0.5 rounded font-bold">{t("footer.ageGate")}</span>
-              <span>{t("footer.playResponsibly")}</span>
+              <span className="bg-white/10 px-2 py-0.5 rounded font-bold">18+</span>
+              <span>Play responsibly</span>
             </div>
           </div>
         </div>

@@ -35,7 +35,8 @@ export default {
         "danger-light": "#fee2e2",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Inter", "Noto Sans Ethiopic", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
         display: ["Inter", "system-ui", "sans-serif"],
       },
       boxShadow: {

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import api from "../lib/api";
 import { useAuthStore } from "../store/auth";
 
@@ -18,7 +17,6 @@ const PHONE_CODES = [
 ];
 
 export default function Register() {
-  const { t, i18n } = useTranslation();
   const nav = useNavigate();
   const [search] = useSearchParams();
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -47,11 +45,11 @@ export default function Register() {
 
     const phoneDigits = form.phoneNumber.replace(/\D/g, "");
     if (phoneDigits.length < 6 || phoneDigits.length > 12) {
-      setError(t("auth.register.errorPhoneLength"));
+      setError("Phone number should be 6 to 12 digits, no spaces.");
       return;
     }
     if (!/^\d{6}$/.test(form.pin)) {
-      setError(t("auth.register.errorPasswordFormat"));
+      setError("Password must be exactly 6 digits.");
       return;
     }
 
@@ -61,9 +59,9 @@ export default function Register() {
         fullName: form.fullName.trim(),
         email: form.email.trim().toLowerCase(),
         phone: `${phoneCode.code}${phoneDigits}`,
-        pin: form.pin,
+        pin: form.pin,                       // STRING, not array
         country: phoneCode.country,
-        language: (i18n.language || "en").split("-")[0],
+        language: "en",
       };
       if (form.promoCode.trim()) {
         payload.promoCode = form.promoCode.trim().toUpperCase();
@@ -71,14 +69,16 @@ export default function Register() {
 
       const { data } = await api.post("/auth/register", payload);
       setAuth(data.user, data.accessToken);
+      // Redirect intelligently:
+      //   - If they came from a buy flow with ?redirect=, send them back there
+      //   - Otherwise send them to the homepage to discover what's on offer
       const redirect = search.get("redirect");
       nav(redirect || "/");
     } catch (err) {
-      // Backend errors stay in English per design decision
       const msg = err.response?.data?.message
         || err.response?.data?.errors?.[0]?.message
         || err.message
-        || t("auth.register.registrationFailed");
+        || "Registration failed";
       setError(msg);
       console.error("Registration error:", err.response?.data);
     } finally {
@@ -90,37 +90,37 @@ export default function Register() {
     <div className="bg-surface min-h-[80vh] flex items-start justify-center px-4 py-8 sm:py-12">
       <div className="w-full max-w-md">
         <div className="bg-white border border-border rounded-2xl p-5 sm:p-7 shadow-card">
-          <h1 className="text-2xl font-extrabold tracking-tight mb-1">{t("auth.register.title")}</h1>
-          <p className="text-text-muted text-sm mb-5">{t("auth.register.subtitle")}</p>
+          <h1 className="text-2xl font-extrabold tracking-tight mb-1">Create account</h1>
+          <p className="text-text-muted text-sm mb-5">Join LuckyET in under a minute</p>
 
           <form onSubmit={submit} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-semibold mb-1">{t("auth.register.fullName")}</label>
+              <label className="block text-xs font-semibold mb-1">Full name</label>
               <input
                 type="text"
                 value={form.fullName}
                 onChange={update("fullName")}
                 required
                 minLength="2"
-                placeholder={t("auth.register.fullNamePlaceholder")}
+                placeholder="Asrat Belay"
                 className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">{t("auth.register.email")}</label>
+              <label className="block text-xs font-semibold mb-1">Email</label>
               <input
                 type="email"
                 value={form.email}
                 onChange={update("email")}
                 required
-                placeholder={t("auth.register.emailPlaceholder")}
+                placeholder="you@example.com"
                 className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">{t("auth.common.phoneNumber")}</label>
+              <label className="block text-xs font-semibold mb-1">Phone number</label>
               <div className="flex gap-2">
                 <select
                   value={phoneCode.code}
@@ -137,17 +137,15 @@ export default function Register() {
                   value={form.phoneNumber}
                   onChange={update("phoneNumber")}
                   required
-                  placeholder={t("auth.common.phonePlaceholder")}
+                  placeholder="50 123 4567"
                   className="flex-1 bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
                 />
               </div>
-              <p className="text-[10px] text-text-faint mt-1">
-                {t("auth.common.selectedCountry", { flag: phoneCode.flag, label: phoneCode.label })}
-              </p>
+              <p className="text-[10px] text-text-faint mt-1">Selected: {phoneCode.flag} {phoneCode.label}</p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">{t("auth.register.choosePassword")}</label>
+              <label className="block text-xs font-semibold mb-1">Choose a 6-digit password</label>
               <input
                 type="password"
                 inputMode="numeric"
@@ -159,18 +157,16 @@ export default function Register() {
                 placeholder="● ● ● ● ● ●"
                 className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-2.5 text-lg tracking-[0.4em] text-center font-mono"
               />
-              <p className="text-[10px] text-text-faint mt-1">{t("auth.register.passwordHint")}</p>
+              <p className="text-[10px] text-text-faint mt-1">You'll use this to log in. Remember it.</p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">
-                {t("auth.register.promoCodeOptional")} <span className="text-text-faint font-normal">{t("auth.register.optional")}</span>
-              </label>
+              <label className="block text-xs font-semibold mb-1">Promo code <span className="text-text-faint font-normal">(optional)</span></label>
               <input
                 type="text"
                 value={form.promoCode}
                 onChange={update("promoCode")}
-                placeholder={t("auth.register.promoPlaceholder")}
+                placeholder="HABESHA10"
                 className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-2.5 text-sm font-mono uppercase"
               />
             </div>
@@ -182,17 +178,17 @@ export default function Register() {
               disabled={loading}
               className="w-full bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-gold disabled:opacity-50 text-sm"
             >
-              {loading ? t("auth.register.creating") : t("auth.register.createButton")}
+              {loading ? "Creating account..." : "Create account"}
             </button>
 
             <p className="text-[11px] text-text-faint text-center pt-1 leading-relaxed">
-              {t("auth.register.termsNotice")}
+              By creating an account, you confirm you are 18+ and accept our Terms.
             </p>
           </form>
         </div>
 
         <p className="text-center text-sm text-text-muted mt-5">
-          {t("auth.register.alreadyHaveAccount")} <Link to="/login" className="text-brand-dark font-semibold hover:underline">{t("auth.register.logIn")}</Link>
+          Already have an account? <Link to="/login" className="text-brand-dark font-semibold hover:underline">Log in</Link>
         </p>
       </div>
     </div>

@@ -1,54 +1,51 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import api from "../lib/api";
 import QRCard from "../components/QRCard";
 import { capturePromoFromUrl, getStoredPromo, clearStoredPromo } from "../lib/promo";
 
+const SLIDES = [
+  {
+    eyebrow: "🎰 Live now",
+    title: "iPhone 15 Pro Max",
+    accent: "+ 100,000 ETB",
+    body: "5,000 tickets · Quantum-verified · Impossible to rig",
+    cta: { label: "Buy a ticket", to: "/draws" },
+    badge: { text: "Active", className: "bg-green-100 text-green-800" },
+    bg: "from-amber-50 via-white to-burgundy-light",
+  },
+  {
+    eyebrow: "🏆 Coming soon",
+    title: "Suzuki Dzire 2026",
+    accent: "Brand new car",
+    body: "The next big draw. Get on the early list for first access.",
+    cta: { label: "Get notified", to: "/register" },
+    badge: { text: "Soon", className: "bg-amber-100 text-amber-800" },
+    bg: "from-burgundy-light via-white to-amber-50",
+  },
+  {
+    eyebrow: "🏠 Final draw",
+    title: "House in Addis",
+    accent: "Fully furnished",
+    body: "3-bedroom apartment, full legal paperwork.",
+    cta: { label: "Get notified", to: "/register" },
+    badge: { text: "Upcoming", className: "bg-burgundy-light text-burgundy" },
+    bg: "from-amber-50 via-white to-amber-100",
+  },
+];
+
 const SLIDE_INTERVAL = 6000;
 
 export default function Home() {
-  const { t } = useTranslation();
   const [slide, setSlide] = useState(0);
   const [featured, setFeatured] = useState(null);
   const [promo, setPromo] = useState(null);
 
-  // Slides derive from translations so they re-render on language change
-  const SLIDES = useMemo(() => ([
-    {
-      eyebrow: t("home.hero.liveNow"),
-      title: t("home.hero.iphoneTitle"),
-      accent: t("home.hero.iphoneAccent"),
-      body: t("home.hero.iphoneBody"),
-      cta: { label: t("home.hero.ctaBuyTicket"), to: "/draws" },
-      badge: { text: t("home.hero.badgeActive"), className: "bg-green-100 text-green-800" },
-      bg: "from-amber-50 via-white to-burgundy-light",
-    },
-    {
-      eyebrow: t("home.hero.comingSoon"),
-      title: t("home.hero.carTitle"),
-      accent: t("home.hero.carAccent"),
-      body: t("home.hero.carBody"),
-      cta: { label: t("home.hero.ctaGetNotified"), to: "/register" },
-      badge: { text: t("home.hero.badgeSoon"), className: "bg-amber-100 text-amber-800" },
-      bg: "from-burgundy-light via-white to-amber-50",
-    },
-    {
-      eyebrow: t("home.hero.finalDraw"),
-      title: t("home.hero.houseTitle"),
-      accent: t("home.hero.houseAccent"),
-      body: t("home.hero.houseBody"),
-      cta: { label: t("home.hero.ctaGetNotified"), to: "/register" },
-      badge: { text: t("home.hero.badgeUpcoming"), className: "bg-burgundy-light text-burgundy" },
-      bg: "from-amber-50 via-white to-amber-100",
-    },
-  ]), [t]);
-
   // Auto-rotate slides
   useEffect(() => {
-    const tid = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), SLIDE_INTERVAL);
-    return () => clearInterval(tid);
-  }, [SLIDES.length]);
+    const t = setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), SLIDE_INTERVAL);
+    return () => clearInterval(t);
+  }, []);
 
   // Load the featured (active) draw for countdown
   useEffect(() => {
@@ -60,6 +57,8 @@ export default function Home() {
 
   const current = SLIDES[slide];
 
+  // Capture promo code from QR scan (?promo=ABELA10), validate it,
+  // then keep showing a banner until the user completes a purchase or dismisses it.
   // Capture promo code from QR scan (?promo=ABELA10) OR from previous visit
   useEffect(() => {
     const code = capturePromoFromUrl() || getStoredPromo();
@@ -77,31 +76,31 @@ export default function Home() {
     setPromo(null);
   };
 
+
   return (
     <div className="bg-bg">
 
-      {/* Promo banner — visible when a buyer arrived via promoter's QR */}
+            {/* Promo banner — visible when a buyer arrived via promoter's QR */}
       {promo && (
         <div className="bg-burgundy text-white py-3 px-4 animate-slideIn">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
             <div className="text-sm flex items-center gap-2 min-w-0 flex-1">
               <span className="text-base">🎁</span>
               <span className="min-w-0">
-                {t("home.promoBanner.shoppingWith")} <span className="font-mono font-bold tracking-wider">{promo.promoCode}</span> —{" "}
-                {t("home.promoBanner.earnsCommission", { name: promo.streamerName })}
+                Shopping with <span className="font-mono font-bold tracking-wider">{promo.promoCode}</span> —
+                your friend <strong>{promo.streamerName}</strong> earns commission on your tickets.
               </span>
             </div>
             <button
               onClick={dismissPromo}
               className="text-white/70 hover:text-white text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap"
-              aria-label={t("home.promoBanner.remove")}
+              aria-label="Remove promo code"
             >
-              {t("home.promoBanner.remove")}
+              Remove
             </button>
           </div>
         </div>
       )}
-
       {/* ===== HERO ===== */}
       <section className={`relative overflow-hidden bg-gradient-to-br ${current.bg} transition-all duration-1000`}>
         {/* Subtle dot pattern */}
@@ -110,7 +109,7 @@ export default function Home() {
           backgroundSize: '24px 24px',
         }}></div>
 
-        {/* Floating gold orbs */}
+        {/* Floating gold orbs (decoration) */}
         <div className="absolute top-12 right-12 w-32 h-32 bg-amber-400/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-20 left-8 w-40 h-40 bg-burgundy/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
 
@@ -118,12 +117,13 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left: copy */}
             <div className="animate-slideIn" key={slide}>
+              {/* Eyebrow */}
               <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur border border-amber-400/40 px-3 py-1.5 rounded-full mb-5 shadow-sm">
                 <span className="text-xs font-bold text-burgundy">{current.eyebrow}</span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-2">
-                {t("home.hero.winA", { prize: current.title })}
+                Win a {current.title}
               </h1>
               <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5 bg-gradient-to-r from-amber-500 to-amber-700 bg-clip-text text-transparent">
                 {current.accent}
@@ -133,6 +133,7 @@ export default function Home() {
                 {current.body}
               </p>
 
+              {/* CTAs */}
               <div className="flex flex-wrap gap-3">
                 <Link
                   to={current.cta.to}
@@ -144,18 +145,19 @@ export default function Home() {
                   to="/how-it-works"
                   className="inline-flex items-center gap-2 bg-white border-2 border-border text-text font-bold px-6 py-3.5 rounded-lg hover:border-burgundy transition active:scale-95"
                 >
-                  {t("home.hero.howItWorks")}
+                  How it works
                 </Link>
               </div>
 
+              {/* Trust row */}
               <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-6 text-xs text-text-muted">
-                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>{t("home.trust.anuPartner")}</span>
-                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>{t("home.trust.verifiable")}</span>
-                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-burgundy rounded-full"></span>{t("home.trust.ageOnly")}</span>
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>ANU Quantum Lab partner</span>
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>Verifiable draws</span>
+                <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-burgundy rounded-full"></span>18+ only</span>
               </div>
             </div>
 
-            {/* Right: featured prize card */}
+            {/* Right: featured prize card with countdown */}
             <div className="relative">
               {featured ? (
                 <FeaturedDrawCard draw={featured} />
@@ -163,8 +165,8 @@ export default function Home() {
                 <div className="bg-white border-2 border-amber-400/40 rounded-2xl p-6 sm:p-7 shadow-2xl">
                   <div className="text-center py-8">
                     <div className="text-5xl mb-3">🎟️</div>
-                    <h3 className="font-bold text-lg mb-1">{t("home.featured.noActiveDraw")}</h3>
-                    <p className="text-text-muted text-sm">{t("home.featured.checkBack")}</p>
+                    <h3 className="font-bold text-lg mb-1">No active draw right now</h3>
+                    <p className="text-text-muted text-sm">Check back soon for the next one.</p>
                   </div>
                 </div>
               )}
@@ -185,19 +187,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== Recent Winners ===== */}
+      {/* ===== Recent Winners placeholder ===== */}
       <section className="bg-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8">
-            <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">{t("home.winners.eyebrow")}</div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold">{t("home.winners.title")}</h2>
+            <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">Recent Winners</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold">Real people. Real prizes.</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { name: t("home.winners.comingSoon"), prize: t("home.winners.firstWinner") },
-              { name: t("home.winners.comingSoon"), prize: t("home.winners.stayTuned") },
-              { name: t("home.winners.comingSoon"), prize: t("home.winners.ticketsSellingFast") },
+              { name: "Coming soon", prize: "First winner reveal", date: "" },
+              { name: "Coming soon", prize: "Stay tuned", date: "" },
+              { name: "Coming soon", prize: "Tickets selling fast", date: "" },
             ].map((w, i) => (
               <div key={i} className="bg-surface border border-border rounded-xl p-5 text-center">
                 <div className="text-4xl mb-2">🏆</div>
@@ -214,24 +216,24 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">{t("home.qrSection.eyebrow")}</div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">{t("home.qrSection.title")}</h2>
+              <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">Scan & play</div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">Take LuckyET with you</h2>
               <p className="text-text-muted text-base mb-5 leading-relaxed">
-                {t("home.qrSection.body")}
+                Scan this QR code from any device to open LuckyET. Share it with friends and family — they can buy tickets and check results instantly.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link to="/draws" className="bg-burgundy text-white font-bold px-5 py-2.5 rounded-lg hover:bg-burgundy-dark transition text-sm">
-                  {t("home.qrSection.browseDraws")}
+                  Browse draws →
                 </Link>
                 <Link to="/how-it-works" className="bg-white border border-border font-semibold px-5 py-2.5 rounded-lg hover:bg-surface transition text-sm">
-                  {t("home.qrSection.learnMore")}
+                  Learn more
                 </Link>
               </div>
             </div>
             <div className="flex justify-center md:justify-end">
               <QRCard
-                title={t("home.qrSection.scanTitle")}
-                subtitle={t("home.qrSection.scanSubtitle")}
+                title="Scan to play"
+                subtitle="Opens LuckyET on your phone"
                 size={160}
               />
             </div>
@@ -247,17 +249,15 @@ export default function Home() {
 ============================================================ */
 
 function FeaturedDrawCard({ draw }) {
-  const { t } = useTranslation();
   const [timeLeft, setTimeLeft] = useState(() => computeTimeLeft(draw.drawDate));
 
   useEffect(() => {
-    const tid = setInterval(() => setTimeLeft(computeTimeLeft(draw.drawDate)), 1000);
-    return () => clearInterval(tid);
+    const t = setInterval(() => setTimeLeft(computeTimeLeft(draw.drawDate)), 1000);
+    return () => clearInterval(t);
   }, [draw.drawDate]);
 
   const prize = draw.prizes?.[0] || { name: draw.prizeName };
   const soldPct = draw.ticketsSold / draw.ticketPoolSize * 100;
-  const morePrizesCount = (draw.prizes?.length || 0) - 1;
 
   return (
     <div className="bg-white border-2 border-amber-400/60 rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
@@ -265,23 +265,21 @@ function FeaturedDrawCard({ draw }) {
 
       <div className="flex items-start justify-between mb-4 relative">
         <div className="text-[10px] font-bold uppercase tracking-widest text-burgundy bg-burgundy-light px-2 py-1 rounded">
-          {t("home.featured.liveNow")}
+          Live now
         </div>
         <div className="text-[10px] text-text-muted">{draw.title}</div>
       </div>
 
-      <div className="text-xs font-semibold text-text-muted mb-1">{t("home.featured.currentJackpot")}</div>
+      <div className="text-xs font-semibold text-text-muted mb-1">Current jackpot</div>
       <div className="text-2xl sm:text-3xl font-extrabold leading-tight mb-1">{prize.name}</div>
-      {morePrizesCount > 0 && (
-        <div className="text-xs text-text-muted mb-3">
-          {t(morePrizesCount === 1 ? "home.featured.morePrize" : "home.featured.morePrizes", { count: morePrizesCount })}
-        </div>
+      {draw.prizes?.length > 1 && (
+        <div className="text-xs text-text-muted mb-3">+ {draw.prizes.length - 1} more {draw.prizes.length === 2 ? "prize" : "prizes"}</div>
       )}
 
       {/* Countdown */}
       <div className="bg-gradient-to-br from-burgundy to-burgundy-dark text-white rounded-xl p-4 my-4">
         <div className="text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-2 text-center">
-          {timeLeft.expired ? t("home.featured.drawClosed") : t("home.featured.drawClosesIn")}
+          {timeLeft.expired ? "Draw closed" : "Draw closes in"}
         </div>
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           <CountUnit value={timeLeft.days} label="D" />
@@ -294,7 +292,7 @@ function FeaturedDrawCard({ draw }) {
       {/* Sold progress */}
       <div className="mb-4">
         <div className="flex justify-between text-xs mb-1.5">
-          <span className="text-text-muted">{t("home.featured.ticketsSold")}</span>
+          <span className="text-text-muted">Tickets sold</span>
           <span className="font-semibold">{draw.ticketsSold.toLocaleString()} / {draw.ticketPoolSize.toLocaleString()}</span>
         </div>
         <div className="h-2 bg-surface rounded-full overflow-hidden">
@@ -309,7 +307,7 @@ function FeaturedDrawCard({ draw }) {
         to={`/draws/${draw.slug}/buy`}
         className="block w-full text-center bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-gold active:scale-95"
       >
-        {t("home.featured.buyTicket", { price: draw.ticketPriceETB.toLocaleString() })}
+        Buy ticket — {draw.ticketPriceETB.toLocaleString()} ETB
       </Link>
     </div>
   );

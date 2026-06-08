@@ -1,0 +1,184 @@
+{
+  "nav": {
+    "buyLotteries": "Buy Lotteries",
+    "results": "Results",
+    "howItWorks": "How it Works",
+    "dashboard": "Dashboard",
+    "myTickets": "My tickets",
+    "myPayments": "My payments",
+    "login": "Login",
+    "register": "Register",
+    "signOut": "Sign out",
+    "menu": "Menu",
+    "language": "Language",
+    "openMenu": "Open menu"
+  },
+  "banner": {
+    "launchDrawFull": "🎰 Launch draw is live — iPhone 15 Pro Max + 100k ETB · ",
+    "launchDrawShort": "🎰 Launch draw is live · ",
+    "buyTicketCta": "Buy a ticket →"
+  },
+  "footer": {
+    "tagline": "Quantum-verifiable lottery for the Ethiopian & Eritrean diaspora.",
+    "explore": "Explore",
+    "help": "Help",
+    "connect": "Connect",
+    "buy": "Buy",
+    "results": "Results",
+    "howItWorks": "How it works",
+    "faq": "FAQ",
+    "support": "Support",
+    "playResponsibly": "Play responsibly",
+    "ageGate": "18+",
+    "copyright": "© {{year}} LuckyET"
+  },
+  "home": {
+    "hero": {
+      "liveNow": "🎰 Live now",
+      "comingSoon": "🏆 Coming soon",
+      "finalDraw": "🏠 Final draw",
+      "winA": "Win a {{prize}}",
+      "iphoneTitle": "iPhone 15 Pro Max",
+      "iphoneAccent": "+ 100,000 ETB",
+      "iphoneBody": "5,000 tickets · Quantum-verified · Impossible to rig",
+      "carTitle": "Suzuki Dzire 2026",
+      "carAccent": "Brand new car",
+      "carBody": "The next big draw. Get on the early list for first access.",
+      "houseTitle": "House in Addis",
+      "houseAccent": "Fully furnished",
+      "houseBody": "3-bedroom apartment, full legal paperwork.",
+      "ctaBuyTicket": "Buy a ticket",
+      "ctaGetNotified": "Get notified",
+      "howItWorks": "How it works",
+      "badgeActive": "Active",
+      "badgeSoon": "Soon",
+      "badgeUpcoming": "Upcoming"
+    },
+    "trust": {
+      "anuPartner": "ANU Quantum Lab partner",
+      "verifiable": "Verifiable draws",
+      "ageOnly": "18+ only"
+    },
+    "featured": {
+      "liveNow": "Live now",
+      "currentJackpot": "Current jackpot",
+      "morePrize": "+ {{count}} more prize",
+      "morePrizes": "+ {{count}} more prizes",
+      "drawClosed": "Draw closed",
+      "drawClosesIn": "Draw closes in",
+      "ticketsSold": "Tickets sold",
+      "buyTicket": "Buy ticket — {{price}} ETB",
+      "noActiveDraw": "No active draw right now",
+      "checkBack": "Check back soon for the next one."
+    },
+    "winners": {
+      "eyebrow": "Recent Winners",
+      "title": "Real people. Real prizes.",
+      "comingSoon": "Coming soon",
+      "firstWinner": "First winner reveal",
+      "stayTuned": "Stay tuned",
+      "ticketsSellingFast": "Tickets selling fast"
+    },
+    "qrSection": {
+      "eyebrow": "Scan & play",
+      "title": "Take LuckyET with you",
+      "body": "Scan this QR code from any device to open LuckyET. Share it with friends and family — they can buy tickets and check results instantly.",
+      "browseDraws": "Browse draws →",
+      "learnMore": "Learn more",
+      "scanTitle": "Scan to play",
+      "scanSubtitle": "Opens LuckyET on your phone"
+    },
+    "promoBanner": {
+      "shoppingWith": "Shopping with",
+      "earnsCommission": "your friend {{name}} earns commission on your tickets.",
+      "remove": "Remove"
+    }
+  },
+  "auth": {
+    "common": {
+      "phoneNumber": "Phone number",
+      "phonePlaceholder": "50 123 4567",
+      "passwordSixDigits": "Password (6 digits)",
+      "selectedCountry": "Selected: {{flag}} {{label}}",
+      "invalidPhone": "Enter a valid phone number",
+      "enterPassword": "Enter your 6-digit password"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in with your phone and password",
+      "signIn": "Sign in",
+      "signingIn": "Signing in...",
+      "forgotPassword": "Forgot password?",
+      "newToLuckyet": "New to LuckyET?",
+      "createAccount": "Create account",
+      "loginFailed": "Login failed",
+      "attemptsRemaining_one": "⚠️ {{count}} attempt remaining before account is locked",
+      "attemptsRemaining_other": "⚠️ {{count}} attempts remaining before account is locked"
+    },
+    "register": {
+      "title": "Create account",
+      "subtitle": "Join LuckyET in under a minute",
+      "fullName": "Full name",
+      "fullNamePlaceholder": "Asrat Belay",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "choosePassword": "Choose a 6-digit password",
+      "passwordHint": "You'll use this to log in. Remember it.",
+      "promoCodeOptional": "Promo code",
+      "optional": "(optional)",
+      "promoPlaceholder": "HABESHA10",
+      "createButton": "Create account",
+      "creating": "Creating account...",
+      "termsNotice": "By creating an account, you confirm you are 18+ and accept our Terms.",
+      "alreadyHaveAccount": "Already have an account?",
+      "logIn": "Log in",
+      "errorPhoneLength": "Phone number should be 6 to 12 digits, no spaces.",
+      "errorPasswordFormat": "Password must be exactly 6 digits.",
+      "registrationFailed": "Registration failed"
+    },
+    "forgot": {
+      "title": "Forgot password?",
+      "subtitle": "Our team will verify your identity and send you a one-time code so you can set a new password yourself.",
+      "contactMethodLabel": "How should we contact you?",
+      "contactWhatsApp": "WhatsApp",
+      "contactTelegram": "Telegram",
+      "contactPhone": "Phone call",
+      "contactEmail": "Email",
+      "anythingElseOptional": "Anything else?",
+      "reasonPlaceholder": "e.g. I forgot my password and got locked out",
+      "submitButton": "Submit reset request",
+      "submitting": "Submitting...",
+      "rememberedQuestion": "Remembered?",
+      "logIn": "Log in",
+      "submittedTitle": "Request submitted",
+      "submittedBody": "Our team will review your request and contact you via <strong>{{contactMethod}}</strong> with a one-time code. This usually takes a few hours during business hours.",
+      "submittedTip": "💡 When you receive the code, come back to the <1>reset password page</1> and choose your new password.",
+      "backToLogin": "Back to login",
+      "requestFailed": "Request failed"
+    },
+    "reset": {
+      "title": "Set new password",
+      "subtitle": "Enter the 6-digit code we sent you, then choose your new password.",
+      "phoneLabel": "Your phone number",
+      "codeLabel": "Reset code from support (6 digits)",
+      "codePlaceholder": "123456",
+      "newPasswordLabel": "Choose new password (6 digits)",
+      "confirmPasswordLabel": "Confirm new password",
+      "updateButton": "Update password",
+      "updating": "Updating...",
+      "needCodeQuestion": "Need a code?",
+      "requestReset": "Request a password reset",
+      "successTitle": "Password updated",
+      "successBody": "Redirecting you to login...",
+      "errorCode": "Reset code must be 6 digits",
+      "errorNewPassword": "New password must be 6 digits",
+      "errorMismatch": "Passwords don't match",
+      "resetFailed": "Reset failed"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "close": "Close",
+    "remove": "Remove"
+  }
+}

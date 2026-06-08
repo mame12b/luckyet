@@ -170,12 +170,17 @@ export default function DrawEdit() {
               </button>
             )}
 
-            {isBroadcasting && (
+            {isBroadcasting ? (
               <a href={playerUrl(`/draws/${draw.slug}/live`)} target="_blank" rel="noopener noreferrer"
                 className="text-sm font-bold px-4 py-1.5 rounded-md text-white transition shadow-md inline-flex items-center gap-2"
                 style={{ backgroundColor: "#4f46e5" }}>
                 <span className="w-1.5 h-1.5 bg-amber-300 rounded-full animate-pulse"></span>
                 View live broadcast
+              </a>
+            ) : (canRunDraw || draw.status === "active") && (
+              <a href={playerUrl(`/draws/${draw.slug}/live`)} target="_blank" rel="noopener noreferrer"
+                className="text-sm font-bold px-4 py-1.5 rounded-md bg-white border border-border-strong text-text hover:bg-surface transition inline-flex items-center gap-2">
+                📺 Open broadcast preview
               </a>
             )}
           </div>

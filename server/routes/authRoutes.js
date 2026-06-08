@@ -9,6 +9,7 @@ const {
   changePinSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  updateLanguageSchema,
   
 } = require("../validators/authValidators");
 
@@ -21,5 +22,7 @@ router.post("/reset-password", ctrl.completePasswordReset);
 
 router.get("/me", requireAuth, ctrl.me);
 router.post("/change-pin", requireAuth, validate({ body: changePinSchema }), ctrl.changePin);
+
+router.patch("/me/language", requireAuth, ctrl.updateLanguage);
 
 module.exports = router;

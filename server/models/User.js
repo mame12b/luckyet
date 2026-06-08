@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema(
       enum: ["AE", "SA", "KW", "QA", "BH", "OM", "ET", "ER", "US", "GB"],
       required: true,
     },
-    language: { type: String, enum: ["en", "am", "ti"], default: "en" },
+    language: { type: String, enum: ["en", "am", "ti", "om"], default: "en" },
 
     role: {
       type: String,

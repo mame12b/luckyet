@@ -19,3 +19,4 @@ export const useAuthStore = create(
     }
   )
 );
+updateUser: (newUser) => set({ user: newUser })

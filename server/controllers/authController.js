@@ -473,3 +473,31 @@ exports.adminRejectResetRequest = async (req, res, next) => {
     next(err);
   }
 };
+
+// ===== UPDATE LANGUAGE =====
+exports.updateLanguage = async (req, res, next) => {
+  try {
+    const { language } = req.body;
+    if (!["en", "am", "ti", "om"].includes(language)) {
+      return res.status(400).json({ message: "Invalid language" });
+    }
+    await User.findByIdAndUpdate(req.user.id, { language });
+    res.json({ language });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ===== UPDATE LANGUAGE =====
+exports.updateLanguage = async (req, res, next) => {
+  try {
+    const { language } = req.body;
+    if (!["en", "am", "ti", "om"].includes(language)) {
+      return res.status(400).json({ message: "Invalid language" });
+    }
+    await User.findByIdAndUpdate(req.user.id, { language });
+    res.json({ language });
+  } catch (err) {
+    next(err);
+  }
+};

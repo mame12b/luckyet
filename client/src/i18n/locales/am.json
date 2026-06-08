@@ -1,0 +1,184 @@
+{
+  "nav": {
+    "buyLotteries": "ቲኬት ይግዙ",
+    "results": "ውጤቶች",
+    "howItWorks": "እንዴት ይሰራል",
+    "dashboard": "ዳሽቦርድ",
+    "myTickets": "የእኔ ቲኬቶች",
+    "myPayments": "የእኔ ክፍያዎች",
+    "login": "ግባ",
+    "register": "ይመዝገቡ",
+    "signOut": "ውጣ",
+    "menu": "ዝርዝር",
+    "language": "ቋንቋ",
+    "openMenu": "ዝርዝር ክፈት"
+  },
+  "banner": {
+    "launchDrawFull": "🎰 የመክፈቻ ድልድል ቀጥታ ነው — iPhone 15 Pro Max + 100k ETB · ",
+    "launchDrawShort": "🎰 የመክፈቻ ድልድል ቀጥታ · ",
+    "buyTicketCta": "ቲኬት ይግዙ →"
+  },
+  "footer": {
+    "tagline": "ለኢትዮጵያ እና ኤርትራ ዲያስፖራ የተዘጋጀ ኳንተም-የተረጋገጠ ሎተሪ።",
+    "explore": "ዳስሱ",
+    "help": "እርዳታ",
+    "connect": "ይገናኙ",
+    "buy": "ግዛ",
+    "results": "ውጤቶች",
+    "howItWorks": "እንዴት ይሰራል",
+    "faq": "ጥያቄዎች",
+    "support": "ድጋፍ",
+    "playResponsibly": "በኃላፊነት ይጫወቱ",
+    "ageGate": "18+",
+    "copyright": "© {{year}} LuckyET"
+  },
+  "home": {
+    "hero": {
+      "liveNow": "🎰 አሁን ቀጥታ",
+      "comingSoon": "🏆 በቅርብ ቀን",
+      "finalDraw": "🏠 የመጨረሻ ድልድል",
+      "winA": "{{prize}}ን ይዘው ይውጡ",
+      "iphoneTitle": "iPhone 15 Pro Max",
+      "iphoneAccent": "+ 100,000 ብር",
+      "iphoneBody": "5,000 ቲኬቶች · ኳንተም-የተረጋገጠ · ለማታለል የማይቻል",
+      "carTitle": "Suzuki Dzire 2026",
+      "carAccent": "አዲስ መኪና",
+      "carBody": "ቀጣዩ ትልቅ ድልድል። ቀዳሚ ተደራሽነት ለማግኘት ይመዝገቡ።",
+      "houseTitle": "በአዲስ አበባ የሚገኝ ቤት",
+      "houseAccent": "ሙሉ ለሙሉ የተደራጀ",
+      "houseBody": "3-መኝታ ቤት ያለው አፓርትመንት፣ ሙሉ ሕጋዊ ሰነድ።",
+      "ctaBuyTicket": "ቲኬት ይግዙ",
+      "ctaGetNotified": "ማሳወቂያ ይቀበሉ",
+      "howItWorks": "እንዴት ይሰራል",
+      "badgeActive": "ንቁ",
+      "badgeSoon": "በቅርቡ",
+      "badgeUpcoming": "የሚመጣ"
+    },
+    "trust": {
+      "anuPartner": "የANU ኳንተም ላብ አጋር",
+      "verifiable": "ሊረጋገጡ የሚችሉ ድልድሎች",
+      "ageOnly": "ለ18+ ብቻ"
+    },
+    "featured": {
+      "liveNow": "አሁን ቀጥታ",
+      "currentJackpot": "የአሁኑ ዋንጫ",
+      "morePrize": "+ {{count}} ተጨማሪ ሽልማት",
+      "morePrizes": "+ {{count}} ተጨማሪ ሽልማቶች",
+      "drawClosed": "ድልድሉ ተዘግቷል",
+      "drawClosesIn": "ድልድሉ ይዘጋል በ",
+      "ticketsSold": "የተሸጡ ቲኬቶች",
+      "buyTicket": "ቲኬት ይግዙ — {{price}} ብር",
+      "noActiveDraw": "አሁን ንቁ ድልድል የለም",
+      "checkBack": "ለቀጣዩ በቅርቡ ይመለሱ።"
+    },
+    "winners": {
+      "eyebrow": "የቅርብ ጊዜ አሸናፊዎች",
+      "title": "እውነተኛ ሰዎች። እውነተኛ ሽልማቶች።",
+      "comingSoon": "በቅርቡ",
+      "firstWinner": "የመጀመሪያ አሸናፊ ይፋ ይሆናል",
+      "stayTuned": "አብረውን ይሁኑ",
+      "ticketsSellingFast": "ቲኬቶች በፍጥነት እየተሸጡ ነው"
+    },
+    "qrSection": {
+      "eyebrow": "ይቃኙ እና ይጫወቱ",
+      "title": "LuckyETን ይዘው ይውጡ",
+      "body": "ይህን QR ኮድ ከማንኛውም መሣሪያ ይቃኙና LuckyETን ይክፈቱ። ለጓደኞችዎ እና ለቤተሰብዎ ያጋሩ — ቲኬት ይገዛሉ ውጤቶችን በፍጥነት ያያሉ።",
+      "browseDraws": "ድልድሎችን ይመልከቱ →",
+      "learnMore": "የበለጠ ይወቁ",
+      "scanTitle": "ይቃኙና ይጫወቱ",
+      "scanSubtitle": "LuckyETን በስልክዎ ይከፍታል"
+    },
+    "promoBanner": {
+      "shoppingWith": "በ",
+      "earnsCommission": "እየገበዩ ነው — ጓደኛዎ {{name}} በቲኬቶችዎ ላይ ኮሚሽን ያገኛል።",
+      "remove": "ያስወግዱ"
+    }
+  },
+  "auth": {
+    "common": {
+      "phoneNumber": "ስልክ ቁጥር",
+      "phonePlaceholder": "50 123 4567",
+      "passwordSixDigits": "የይለፍ ቃል (6 ቁጥሮች)",
+      "selectedCountry": "የተመረጠ: {{flag}} {{label}}",
+      "invalidPhone": "ትክክለኛ ስልክ ቁጥር ያስገቡ",
+      "enterPassword": "6-ቁጥር የይለፍ ቃልዎን ያስገቡ"
+    },
+    "login": {
+      "title": "እንኳን ደህና መጡ",
+      "subtitle": "በስልክዎ እና በይለፍ ቃልዎ ይግቡ",
+      "signIn": "ግባ",
+      "signingIn": "በመግባት ላይ...",
+      "forgotPassword": "የይለፍ ቃል ረሳዎት?",
+      "newToLuckyet": "LuckyET አዲስ ነዎት?",
+      "createAccount": "መለያ ይክፈቱ",
+      "loginFailed": "መግባት አልተሳካም",
+      "attemptsRemaining_one": "⚠️ መለያው ከመቆለፉ በፊት {{count}} ሙከራ ቀርቷል",
+      "attemptsRemaining_other": "⚠️ መለያው ከመቆለፉ በፊት {{count}} ሙከራዎች ቀርተዋል"
+    },
+    "register": {
+      "title": "መለያ ይክፈቱ",
+      "subtitle": "በአንድ ደቂቃ ውስጥ ወደ LuckyET ይቀላቀሉ",
+      "fullName": "ሙሉ ስም",
+      "fullNamePlaceholder": "አስራት በላይ",
+      "email": "ኢሜይል",
+      "emailPlaceholder": "you@example.com",
+      "choosePassword": "6-ቁጥር የይለፍ ቃል ይምረጡ",
+      "passwordHint": "ይህን ለመግባት ይጠቀማሉ። ያስታውሱት።",
+      "promoCodeOptional": "የማስተዋወቂያ ኮድ",
+      "optional": "(አማራጭ)",
+      "promoPlaceholder": "HABESHA10",
+      "createButton": "መለያ ይክፈቱ",
+      "creating": "መለያ በመክፈት ላይ...",
+      "termsNotice": "መለያ በመክፈት 18+ መሆንዎን እና የእኛን ውሎች መቀበልዎን ያረጋግጣሉ።",
+      "alreadyHaveAccount": "ቀደም ሲል መለያ አለዎት?",
+      "logIn": "ግባ",
+      "errorPhoneLength": "የስልክ ቁጥር ከ6 እስከ 12 ቁጥሮች መሆን አለበት፣ ያለ ክፍተት።",
+      "errorPasswordFormat": "የይለፍ ቃል በትክክል 6 ቁጥሮች መሆን አለበት።",
+      "registrationFailed": "መመዝገብ አልተሳካም"
+    },
+    "forgot": {
+      "title": "የይለፍ ቃል ረሳዎት?",
+      "subtitle": "ቡድናችን ማንነትዎን ያረጋግጣል እና አዲስ የይለፍ ቃል እራስዎ እንዲያዘጋጁ የአንድ ጊዜ ኮድ ይልክልዎታል።",
+      "contactMethodLabel": "እንዴት እናግኝዎ?",
+      "contactWhatsApp": "WhatsApp",
+      "contactTelegram": "Telegram",
+      "contactPhone": "የስልክ ጥሪ",
+      "contactEmail": "ኢሜይል",
+      "anythingElseOptional": "ሌላ ነገር አለ?",
+      "reasonPlaceholder": "ለምሳሌ፣ የይለፍ ቃሌን ረሳሁ እና ተቆለፍኩ",
+      "submitButton": "የዳግም ማስተካከያ ጥያቄ ላክ",
+      "submitting": "በመላክ ላይ...",
+      "rememberedQuestion": "አስታወሱ?",
+      "logIn": "ግባ",
+      "submittedTitle": "ጥያቄ ተልኳል",
+      "submittedBody": "ቡድናችን ጥያቄዎን ይገመግማል እና በ <strong>{{contactMethod}}</strong> በኩል የአንድ ጊዜ ኮድ ይልክልዎታል። በተለመደ ሁኔታ ይህ በስራ ሰዓታት ጥቂት ሰዓታት ይወስዳል።",
+      "submittedTip": "💡 ኮዱን ሲቀበሉ ወደ <1>የይለፍ ቃል ዳግም ማስተካከያ ገጽ</1> ይመለሱ እና አዲስ የይለፍ ቃልዎን ይምረጡ።",
+      "backToLogin": "ወደ መግቢያ ይመለሱ",
+      "requestFailed": "ጥያቄ አልተሳካም"
+    },
+    "reset": {
+      "title": "አዲስ የይለፍ ቃል ያዘጋጁ",
+      "subtitle": "የላክንልዎትን 6-ቁጥር ኮድ ያስገቡ፣ ከዚያ አዲስ የይለፍ ቃልዎን ይምረጡ።",
+      "phoneLabel": "የእርስዎ ስልክ ቁጥር",
+      "codeLabel": "ከድጋፍ የተላከ ኮድ (6 ቁጥሮች)",
+      "codePlaceholder": "123456",
+      "newPasswordLabel": "አዲስ የይለፍ ቃል ይምረጡ (6 ቁጥሮች)",
+      "confirmPasswordLabel": "አዲሱን የይለፍ ቃል ያረጋግጡ",
+      "updateButton": "የይለፍ ቃል አዘምን",
+      "updating": "በማዘመን ላይ...",
+      "needCodeQuestion": "ኮድ ይፈልጋሉ?",
+      "requestReset": "የይለፍ ቃል ዳግም ማስተካከያ ይጠይቁ",
+      "successTitle": "የይለፍ ቃል ተዘምኗል",
+      "successBody": "ወደ መግቢያ በማዞር ላይ...",
+      "errorCode": "የዳግም ማስተካከያ ኮድ 6 ቁጥሮች መሆን አለበት",
+      "errorNewPassword": "አዲሱ የይለፍ ቃል 6 ቁጥሮች መሆን አለበት",
+      "errorMismatch": "የይለፍ ቃሎች አይዛመዱም",
+      "resetFailed": "ዳግም ማስተካከያ አልተሳካም"
+    }
+  },
+  "common": {
+    "loading": "በመጫን ላይ...",
+    "close": "ዝጋ",
+    "remove": "ያስወግዱ"
+  }
+}

@@ -6,6 +6,7 @@ import { connectSocket, disconnectSocket } from "./lib/socket";
 import ToastHost from "./components/ToastHost";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import "./i18n"; // Initialize i18n 
 
 
 import Layout from "./components/Layout";

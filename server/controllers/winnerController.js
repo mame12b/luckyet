@@ -264,7 +264,9 @@ exports.getLiveState = async (req, res, next) => {
       title: draw.title,
       prizes: effectivePrizes,
       ticketsSold: draw.ticketsSold,
+      ticketPoolSize: draw.ticketPoolSize,
       status: draw.status,
+      drawDate: draw.drawDate,
       animation: null,
       winners: null,
     };

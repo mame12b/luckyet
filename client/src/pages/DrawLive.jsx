@@ -143,23 +143,8 @@ export default function DrawLive() {
           <div className="text-base md:text-2xl font-semibold opacity-90">{phase.label}</div>
         </div>
 
-        {/* Idle */}
-        {phase.name === "idle" && (
-          <div className="text-center animate-pulse">
-            <div className="text-6xl md:text-9xl mb-6">⏳</div>
-            <div className="text-xl md:text-3xl font-bold mb-2">Standing by</div>
-            <div className="text-sm md:text-base opacity-70">The draw will begin shortly</div>
-            {state.prizes?.length > 0 && (
-              <div className="mt-8 inline-block bg-white/10 backdrop-blur border border-white/20 rounded-xl px-6 py-3">
-                <div className="text-xs uppercase tracking-wider opacity-60 mb-1">
-                  {state.prizes.length > 1 ? `${state.prizes.length} prizes` : "Prize"}
-                </div>
-                <div className="text-lg md:text-2xl font-bold">{prizeTitle}</div>
-                <div className="text-xs opacity-70 mt-1">{state.ticketsSold?.toLocaleString()} tickets in this draw</div>
-              </div>
-            )}
-          </div>
-        )}
+{/* Idle / standby — rich teaser */}
+{phase.name === "idle" && <StandbyScreen state={state} />}
 
         {/* Connecting */}
         {phase.name === "connecting" && (
@@ -235,7 +220,7 @@ export default function DrawLive() {
             >
               <div className="bg-gradient-to-br from-amber-400 to-amber-600 text-burgundy rounded-xl py-3 px-2 mb-4">
                 <div className="text-[10px] uppercase tracking-widest font-bold opacity-70">Winning Ticket</div>
-                <div className="font-mono text-xl md:text-2xl font-extrabold tracking-wider break-all">
+                <div className="font-mono text-2xl md:text-2xl font-extrabold tracking-wider break-all">
                   {w.ticketNumber}
                 </div>
               </div>
@@ -433,4 +418,153 @@ function FullScreen({ children }) {
       {children}
     </div>
   );
+}
+
+/* ============================================================
+   Standby screen — shown before broadcast starts.
+   Rich teaser with countdown, prize hero, Buy CTA, Close.
+============================================================ */
+function StandbyScreen({ state }) {
+  const grand = state.prizes?.[0];
+  const hasMultiplePrizes = state.prizes?.length > 1;
+  const canBuy = state.status === "active";
+  const drawDate = state.drawDate;
+
+  const [timeLeft, setTimeLeft] = useState(() => computeTimeLeft(drawDate));
+  useEffect(() => {
+    if (!drawDate) return;
+    const t = setInterval(() => setTimeLeft(computeTimeLeft(drawDate)), 1000);
+    return () => clearInterval(t);
+  }, [drawDate]);
+
+  return (
+    <div className="w-full max-w-3xl mx-auto pb-12 px-2 animate-slideIn">
+      {/* Close button — fixed top right */}
+      <Link
+        to="/draws"
+        className="fixed top-4 right-4 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center hover:bg-white/20 transition text-white"
+        aria-label="Close"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        ✕
+      </Link>
+
+      {/* Standby badge */}
+      <div className="text-center mb-4">
+        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-amber-300/30 rounded-full px-4 py-1.5">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span className="text-xs uppercase tracking-widest font-bold text-amber-300">Broadcast standing by</span>
+        </div>
+      </div>
+
+      {/* Hero prize teaser */}
+      {grand && (
+        <div className="bg-white/10 backdrop-blur-md border border-amber-300/40 rounded-2xl p-5 sm:p-7 mb-5 text-center shadow-2xl">
+          {grand.imageUrl && (
+            <img
+              src={grand.imageUrl}
+              alt={grand.name}
+              className="w-32 h-32 sm:w-40 sm:h-40 object-contain mx-auto mb-3 drop-shadow-2xl"
+              onError={(e) => { e.target.style.display = "none"; }}
+            />
+          )}
+          <div className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-amber-300 font-bold mb-1">
+            Grand Prize
+          </div>
+          <div className="text-2xl sm:text-4xl font-extrabold mb-1 leading-tight">{grand.name}</div>
+          {grand.estimatedValueETB > 0 && (
+            <div className="text-base sm:text-xl font-bold bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
+              + {grand.estimatedValueETB.toLocaleString()} ETB value
+            </div>
+          )}
+          {hasMultiplePrizes && (
+            <div className="text-xs opacity-70 mt-2">
+              + {state.prizes.length - 1} more {state.prizes.length === 2 ? "prize" : "prizes"} below
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Countdown to draw date */}
+      {drawDate && !timeLeft.expired && (
+        <div className="bg-gradient-to-br from-burgundy/40 to-black/40 backdrop-blur border border-white/15 rounded-2xl p-4 sm:p-5 mb-5">
+          <div className="text-[10px] sm:text-xs uppercase tracking-widest text-amber-300 font-bold mb-2 sm:mb-3 text-center">
+            Broadcast begins in
+          </div>
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
+            <CountUnit value={timeLeft.days} label="D" />
+            <CountUnit value={timeLeft.hours} label="H" />
+            <CountUnit value={timeLeft.minutes} label="M" />
+            <CountUnit value={timeLeft.seconds} label="S" />
+          </div>
+        </div>
+      )}
+      {drawDate && timeLeft.expired && (
+        <div className="bg-white/10 backdrop-blur border border-amber-300/30 rounded-xl p-4 mb-5 text-center">
+          <div className="text-sm sm:text-base font-bold text-amber-300">⏰ Draw time has arrived</div>
+          <div className="text-xs opacity-80 mt-1">Standing by for the host to start the broadcast…</div>
+        </div>
+      )}
+
+      {/* Sample ticket numbers (subtle teaser) */}
+      {state.animation?.sampleTicketNumbers?.length > 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4 mb-5 overflow-hidden">
+          <div className="text-[10px] uppercase tracking-widest opacity-50 text-center mb-2">
+            Tickets in the pool
+          </div>
+          <div className="flex flex-wrap justify-center gap-2 opacity-60">
+            {state.animation.sampleTicketNumbers.slice(0, 8).map((n, i) => (
+              <span key={i} className="font-mono text-xs sm:text-sm bg-white/5 px-2 py-1 rounded">
+                {n}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tickets sold info */}
+      <div className="text-center mb-5 text-sm opacity-70">
+        🎟️ {state.ticketsSold?.toLocaleString() || 0} tickets sold in this draw
+      </div>
+
+      {/* Buy CTA (only if draw is still active) */}
+      {canBuy && (
+        <Link
+          to={`/draws/${state.slug}/buy`}
+          className="block max-w-md mx-auto text-center bg-gradient-to-r from-amber-400 to-amber-600 text-burgundy font-extrabold py-4 px-6 rounded-xl shadow-2xl hover:from-amber-500 hover:to-amber-700 transition active:scale-95 mb-4"
+        >
+          🎟️ Buy a ticket before it's too late →
+        </Link>
+      )}
+
+      {/* Reassurance */}
+      <div className="text-center text-xs opacity-50 mt-2 px-4">
+        Stay on this page — the broadcast will start automatically when the host begins.
+      </div>
+    </div>
+  );
+}
+
+function CountUnit({ value, label }) {
+  return (
+    <div className="bg-white/10 rounded-md py-2 sm:py-3 text-center">
+      <div className="text-xl sm:text-3xl font-extrabold font-mono leading-none">{String(value).padStart(2, "0")}</div>
+      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider opacity-70 mt-1">{label}</div>
+    </div>
+  );
+}
+
+function computeTimeLeft(drawDate) {
+  if (!drawDate) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  const now = Date.now();
+  const target = new Date(drawDate).getTime();
+  const diff = target - now;
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+    expired: false,
+  };
 }
