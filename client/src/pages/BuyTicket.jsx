@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useTranslation, Trans } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import api from "../lib/api";
 import { useAuthStore } from "../store/auth";
 import CopyButton from "../components/CopyButton";
@@ -48,7 +48,8 @@ export default function BuyTicket() {
         else if (accounts.length > 0) setMethod(accounts[0].method);
       })
       .catch((err) => setError(err.response?.data?.message || t("buy.loadFailed")));
-  }, [slug, user, nav, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, user, nav]);
 
   // Pre-fill promo code from localStorage (QR scan)
   useEffect(() => {
@@ -216,18 +217,10 @@ export default function BuyTicket() {
               />
               {promoValid?.valid && (
                 <p className="text-xs text-green-700 font-semibold mt-1">
-                  <Trans
-                    i18nKey="buy.step1.promoApplied"
-                    values={{ name: promoValid.streamerName }}
-                    components={[<strong key="0" />]}
-                  />
-                  {promoValid.playerDiscountPercent > 0 && (
-                    <Trans
-                      i18nKey="buy.step1.promoDiscount"
-                      values={{ percent: promoValid.playerDiscountPercent }}
-                      components={[<strong key="0" />]}
-                    />
-                  )}
+                  {t("buy.step1.promoApplied", { name: promoValid.streamerName })}
+                  {promoValid.playerDiscountPercent > 0 &&
+                    t("buy.step1.promoDiscount", { percent: promoValid.playerDiscountPercent })
+                  }
                 </p>
               )}
               {promoValid && !promoValid.valid && promoCode.trim() && (
@@ -365,10 +358,11 @@ export default function BuyTicket() {
             </div>
             <h2 className="text-2xl font-extrabold mb-2">{t("buy.step3.title")}</h2>
             <p className="text-text-muted text-sm leading-relaxed mb-5">
-              <Trans
-                i18nKey="buy.step3.body"
-                components={[<strong key="0" className="text-text" />, " ", <strong key="2" className="text-text" />]}
-              />
+              {t("buy.step3.bodyPart1")}{" "}
+              <strong className="text-text">{t("buy.step3.bodyHours")}</strong>
+              {t("buy.step3.bodyPart2")}{" "}
+              <strong className="text-text">{t("buy.step3.bodyMyTickets")}</strong>
+              {t("buy.step3.bodyPart3")}
             </p>
             <div className="bg-surface border border-border rounded-lg p-4 mb-5 text-left">
               <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t("buy.step3.reference")}</div>

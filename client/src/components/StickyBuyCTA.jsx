@@ -27,6 +27,7 @@ export default function StickyBuyCTA() {
   if (hide) return null;
 
   const target = featuredSlug ? `/draws/${featuredSlug}` : "/draws";
+  const label = t("sticky.buyTickets");
 
   return (
     <Link
@@ -43,10 +44,10 @@ export default function StickyBuyCTA() {
         transition-all
         animate-bounceIn
       "
-      aria-label={t("sticky.buyTickets")}
+      aria-label={label}
     >
       <span className="text-lg">🎟️</span>
-      <span>{t("sticky.buyTickets")}</span>
+      <span>{label}</span>
     </Link>
   );
 }

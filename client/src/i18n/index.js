@@ -10,7 +10,7 @@ import om from "./locales/om.json";
 export const SUPPORTED_LANGS = [
   { code: "en", label: "English",       nativeLabel: "English",        flag: "🇬🇧" },
   { code: "am", label: "Amharic",       nativeLabel: "አማርኛ",          flag: "🇪🇹", beta: true },
-  { code: "ti", label: "Tigrinya",      nativeLabel: "ትግርኛ",          flag: "🇪🇷", beta: true },
+  { code: "ti", label: "Tigrinya",      nativeLabel: "ትግርኛ",          flag: "🇪🇹", beta: true },
   { code: "om", label: "Afaan Oromifa", nativeLabel: "Afaan Oromifa",  flag: "🇪🇹", beta: true },
 ];
 

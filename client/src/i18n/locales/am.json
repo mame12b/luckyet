@@ -246,8 +246,8 @@
       "forYou": "✓ ለእርስዎ",
       "promoTitle": "የማስተዋወቂያ ኮድ (አማራጭ)",
       "promoPlaceholder": "HABESHA10",
-      "promoApplied": "✓ ተግባራዊ ሆኗል — ጓደኛዎ <1>{{name}}</1> ኮሚሽን ያገኛል",
-      "promoDiscount": " · <1>{{percent}}% ቅናሽ</1> ለእርስዎ",
+      "promoApplied": "✓ ተግባራዊ ሆኗል — ጓደኛዎ {{name}} ኮሚሽን ያገኛል",
+      "promoDiscount": " · {{percent}}% ቅናሽ ለእርስዎ",
       "promoInvalid": "ልክ ያልሆነ ወይም ጊዜው ያለፈ ኮድ",
       "subtotal": "ድምር ({{qty}} × {{price}})",
       "discount": "ቅናሽ",
@@ -277,11 +277,15 @@
     },
     "step3": {
       "title": "ደረሰኝ ተልኳል!",
-      "body": "ክፍያዎን በ <1>24 ሰዓታት</1> ውስጥ እንገመግማለን። ከተረጋገጠ በኋላ የእርስዎ ኳንተም ቲኬቶች በ <3>የእኔ ቲኬቶች</3> ውስጥ ይታያሉ።",
       "reference": "ማጣቀሻ",
       "saveTip": "እንድንገናኝዎት ካስፈለግን ይህን ያስቀምጡት።",
       "viewMyPayments": "የእኔን ክፍያዎች ይመልከቱ",
-      "browseMore": "ተጨማሪ ድልድሎችን ይመልከቱ"
+      "browseMore": "ተጨማሪ ድልድሎችን ይመልከቱ",
+      "bodyPart1": "ክፍያዎን በ",
+      "bodyHours": "24 ሰዓታት",
+      "bodyPart2": "ውስጥ እንገመግማለን። ከተረጋገጠ በኋላ የእርስዎ ኳንተም ቲኬቶች በ",
+      "bodyMyTickets": "የእኔ ቲኬቶች",
+      "bodyPart3": "ውስጥ ይታያሉ።"
     },
     "methods": {
       "botim": "Botim",

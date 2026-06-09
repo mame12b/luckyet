@@ -134,6 +134,10 @@ exports.initiate = async (req, res, next) => {
  */
 exports.submitReceipt = async (req, res, next) => {
   try {
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+    console.log("USER:", req.user);
+
     const { transactionNumber } = req.body;
     const payment = await Payment.findById(req.params.id)
       .populate("userId", "fullName country")

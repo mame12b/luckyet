@@ -246,8 +246,8 @@
       "forYou": "✓ For you",
       "promoTitle": "Promo code (optional)",
       "promoPlaceholder": "HABESHA10",
-      "promoApplied": "✓ Applied — your friend <1>{{name}}</1> earns commission",
-      "promoDiscount": " · <1>{{percent}}% off</1> for you",
+      "promoApplied": "✓ Applied — your friend {{name}} earns commission",
+      "promoDiscount": " · {{percent}}% off for you",
       "promoInvalid": "Invalid or expired code",
       "subtotal": "Subtotal ({{qty}} × {{price}})",
       "discount": "Discount",
@@ -277,11 +277,15 @@
     },
     "step3": {
       "title": "Receipt submitted!",
-      "body": "We'll review your payment within <1>24 hours</1>. Once verified, your quantum tickets will appear in <3>My tickets</3>.",
       "reference": "Reference",
       "saveTip": "Save this in case we need to contact you.",
       "viewMyPayments": "View my payments",
-      "browseMore": "Browse more draws"
+      "browseMore": "Browse more draws",
+      "bodyPart1": "We'll review your payment within",
+      "bodyHours": "24 hours",
+      "bodyPart2": ". Once verified, your quantum tickets will appear in",
+      "bodyMyTickets": "My tickets",
+      "bodyPart3": "."
     },
     "methods": {
       "botim": "Botim",
