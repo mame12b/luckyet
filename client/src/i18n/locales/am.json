@@ -295,5 +295,65 @@
       "bank_transfer": "የባንክ ዝውውር",
       "bank_transferSubtitle": "የአካባቢ ባንክ"
     }
+  },
+  "sticky": {
+    "buyTickets": "ቲኬት ይግዙ"
+  },
+  "toast": {
+    "verifiedTitle": "🎉 ቲኬቶች ተረጋግጠዋል!",
+    "verifiedMessage": "ለ {{drawTitle}} የከፈሉት ክፍያ ተቀባይነት አግኝቷል።",
+    "verifiedMessageGeneric": "ለድልድሉ የከፈሉት ክፍያ ተቀባይነት አግኝቷል።",
+    "viewMyTickets": "የእኔን ቲኬቶች ይመልከቱ",
+    "rejectedTitle": "ክፍያ ሊረጋገጥ አልቻለም",
+    "rejectedMessageGeneric": "እባክዎ ድጋፍን ያግኙ።",
+    "viewMyPayments": "የእኔን ክፍያዎች ይመልከቱ",
+    "yourQuantumTicket": "የእርስዎ ኳንተም ቲኬት",
+    "yourQuantumTickets": "የእርስዎ ኳንተም ቲኬቶች",
+    "dismiss": "ዝጋ"
+  },
+  "draws": {
+    "eyebrow": "ሎተሪዎች",
+    "title": "ንቁ ድልድሎች",
+    "subtitle": "መልካም ዕድል! 🍀 ድልድል ይምረጡ እና ከመሸጡ በፊት ቲኬትዎን ይያዙ።",
+    "loadFailed": "ድልድሎችን መጫን አልተሳካም",
+    "emptyTitle": "አሁን ምንም ንቁ ድልድል የለም",
+    "emptyBody": "በቅርቡ ይመለሱ — አዲስ ድልድሎች በመደበኛነት ይከፈታሉ።",
+    "active": "ንቁ",
+    "sold": "{{count}} ተሸጧል",
+    "left": "{{count}} ቀርቷል",
+    "ticketPrice": "የቲኬት ዋጋ",
+    "closes": "ይዘጋል",
+    "buyTicket": "ቲኬት ይግዙ →"
+  },
+  "drawDetail": {
+    "backToAll": "← ሁሉም ድልድሎች",
+    "loadFailed": "ድልድል መጫን አልተሳካም",
+    "notFoundTitle": "ድልድል አልተገኘም",
+    "notFoundBody": "ይህ ድልድል የለም ወይም ተወግዷል።",
+    "backToActive": "← ወደ ንቁ ድልድሎች ይመለሱ",
+    "active": "ንቁ",
+    "soldOut": "ተሸጧል",
+    "prizesCount_one": "{{count}} ሽልማት",
+    "prizesCount_other": "{{count}} ሽልማቶች",
+    "ticketPrice": "የቲኬት ዋጋ",
+    "totalPrizePool": "ጠቅላላ የሽልማት ገንዘብ",
+    "acrossWinners_one": "{{count}} አሸናፊ",
+    "acrossWinners_other": "{{count}} አሸናፊዎች",
+    "ticketsSold": "የተሸጡ ቲኬቶች",
+    "ticketsRemaining_one": "{{count}} ቲኬት ቀርቷል",
+    "ticketsRemaining_other": "{{count}} ቲኬቶች ቀርተዋል",
+    "closes": "ይዘጋል",
+    "drawDate": "የድልድል ቀን",
+    "buyTicketCta": "ቲኬት ይግዙ →",
+    "notAvailable": "የለም",
+    "signInNotice": "እንዲገቡ ወይም መለያ እንዲከፍቱ ይጠየቃሉ",
+    "allPrizeTiers": "ሁሉም የሽልማት ደረጃዎች",
+    "tier": {
+      "1": "ግራንድ ሽልማት",
+      "2": "2ኛ ሽልማት",
+      "3": "3ኛ ሽልማት",
+      "4": "4ኛ ሽልማት",
+      "5": "5ኛ ሽልማት"
+    }
   }
 }

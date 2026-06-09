@@ -295,5 +295,65 @@
       "bank_transfer": "Bank transfer",
       "bank_transferSubtitle": "Local bank"
     }
+  },
+  "sticky": {
+    "buyTickets": "Buy Tickets"
+  },
+  "toast": {
+    "verifiedTitle": "🎉 Tickets confirmed!",
+    "verifiedMessage": "Your payment for {{drawTitle}} is approved.",
+    "verifiedMessageGeneric": "Your payment for the draw is approved.",
+    "viewMyTickets": "View my tickets",
+    "rejectedTitle": "Payment couldn't be verified",
+    "rejectedMessageGeneric": "Please contact support.",
+    "viewMyPayments": "View my payments",
+    "yourQuantumTicket": "Your quantum ticket",
+    "yourQuantumTickets": "Your quantum tickets",
+    "dismiss": "Dismiss"
+  },
+  "draws": {
+    "eyebrow": "Lotteries",
+    "title": "Active Draws",
+    "subtitle": "Good luck! 🍀 Pick a draw and grab your ticket before it sells out.",
+    "loadFailed": "Failed to load draws",
+    "emptyTitle": "No active draws right now",
+    "emptyBody": "Check back soon — new draws launch regularly.",
+    "active": "Active",
+    "sold": "{{count}} sold",
+    "left": "{{count}} left",
+    "ticketPrice": "Ticket price",
+    "closes": "Closes",
+    "buyTicket": "Buy a ticket →"
+  },
+  "drawDetail": {
+    "backToAll": "← All draws",
+    "loadFailed": "Failed to load draw",
+    "notFoundTitle": "Draw not found",
+    "notFoundBody": "This draw doesn't exist or has been removed.",
+    "backToActive": "← Back to active draws",
+    "active": "Active",
+    "soldOut": "Sold out",
+    "prizesCount_one": "{{count}} prize",
+    "prizesCount_other": "{{count}} prizes",
+    "ticketPrice": "Ticket price",
+    "totalPrizePool": "Total prize pool",
+    "acrossWinners_one": "across {{count}} winner",
+    "acrossWinners_other": "across {{count}} winners",
+    "ticketsSold": "Tickets sold",
+    "ticketsRemaining_one": "{{count}} ticket remaining",
+    "ticketsRemaining_other": "{{count}} tickets remaining",
+    "closes": "Closes",
+    "drawDate": "Draw date",
+    "buyTicketCta": "Buy a ticket →",
+    "notAvailable": "Not available",
+    "signInNotice": "You'll be asked to sign in or create an account",
+    "allPrizeTiers": "All prize tiers",
+    "tier": {
+      "1": "Grand prize",
+      "2": "2nd prize",
+      "3": "3rd prize",
+      "4": "4th prize",
+      "5": "5th prize"
+    }
   }
 }

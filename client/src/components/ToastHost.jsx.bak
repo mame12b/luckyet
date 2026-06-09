@@ -1,26 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { onSocketEvent } from "../lib/socket";
 
 export default function ToastHost() {
-  const { t } = useTranslation();
   const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
     const offVerified = onSocketEvent("payment.verified", (data) => {
       console.log("[ToastHost] payment.verified received:", data);
-      const message = data.drawTitle
-        ? t("toast.verifiedMessage", { drawTitle: data.drawTitle })
-        : t("toast.verifiedMessageGeneric");
       addToast({
         id: `verified-${data.paymentId}-${Date.now()}`,
         type: "success",
-        title: t("toast.verifiedTitle"),
-        message,
+        title: "🎉 Tickets confirmed!",
+        message: `Your payment for ${data.drawTitle || "the draw"} is approved.`,
         ticketNumbers: data.ticketNumbers || [],
         ticketCount: data.ticketCount || data.quantity || 1,
-        action: { label: t("toast.viewMyTickets"), to: "/my-tickets" },
+        action: { label: "View my tickets", to: "/my-tickets" },
       });
       window.dispatchEvent(new CustomEvent("data-refresh", { detail: { source: "payment.verified" } }));
     });
@@ -30,47 +25,47 @@ export default function ToastHost() {
       addToast({
         id: `rejected-${data.paymentId}-${Date.now()}`,
         type: "danger",
-        title: t("toast.rejectedTitle"),
-        // Backend reason stays in English per design decision; fallback is translated
-        message: data.reason || t("toast.rejectedMessageGeneric"),
-        action: { label: t("toast.viewMyPayments"), to: "/my-payments" },
+        title: "Payment couldn't be verified",
+        message: data.reason || "Please contact support.",
+        action: { label: "View my payments", to: "/my-payments" },
       });
       window.dispatchEvent(new CustomEvent("data-refresh", { detail: { source: "payment.rejected" } }));
     });
 
     return () => { offVerified(); offRejected(); };
-    // We intentionally don't depend on `t` here — listeners are bound once
-    // per mount. The most-recent t() is captured by the closure when an
-    // event fires, since React re-runs the effect only on mount/unmount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function addToast(toast) {
-    setToasts((prev) => prev.find((tt) => tt.id === toast.id) ? prev : [...prev, toast]);
-    setTimeout(() => setToasts((prev) => prev.filter((tt) => tt.id !== toast.id)), 10000);
+    setToasts((prev) => prev.find((t) => t.id === toast.id) ? prev : [...prev, toast]);
+    // Auto-dismiss after 10s (longer so player can read ticket numbers)
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== toast.id)), 10000);
   }
 
   function dismiss(id) {
-    setToasts((prev) => prev.filter((tt) => tt.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }
 
   if (toasts.length === 0) return null;
 
+  // Show the most recent toast as a celebration card
   const topToast = toasts[toasts.length - 1];
 
   return (
     <>
+      {/* Soft backdrop — clickable to dismiss */}
       <div
         className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9998] animate-fadeIn"
         onClick={() => dismiss(topToast.id)}
       />
 
+      {/* Centered celebration card */}
       <div className="fixed inset-x-0 top-1/2 -translate-y-1/2 z-[9999] px-4 flex justify-center pointer-events-none">
         <div
           className={`pointer-events-auto bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-popIn border-t-4 ${
             topToast.type === "success" ? "border-green-500" : "border-red-500"
           }`}
         >
+          {/* Header */}
           <div className={`px-6 py-5 ${topToast.type === "success" ? "bg-gradient-to-br from-amber-50 to-amber-100" : "bg-red-50"}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
@@ -80,15 +75,16 @@ export default function ToastHost() {
               <button
                 onClick={() => dismiss(topToast.id)}
                 className="text-gray-400 hover:text-gray-700 text-2xl leading-none -mt-1 -mr-1 p-1"
-                aria-label={t("toast.dismiss")}
+                aria-label="Dismiss"
               >×</button>
             </div>
           </div>
 
+          {/* Ticket numbers — only for success */}
           {topToast.type === "success" && topToast.ticketNumbers.length > 0 && (
             <div className="px-6 py-5 bg-white">
               <div className="text-[10px] uppercase tracking-widest font-bold text-amber-700 mb-2">
-                {topToast.ticketCount > 1 ? t("toast.yourQuantumTickets") : t("toast.yourQuantumTicket")}
+                Your quantum {topToast.ticketCount > 1 ? "tickets" : "ticket"}
               </div>
               <div className="space-y-1.5">
                 {topToast.ticketNumbers.map((num, i) => (
@@ -103,6 +99,7 @@ export default function ToastHost() {
             </div>
           )}
 
+          {/* Action */}
           {topToast.action && (
             <div className="px-6 pb-5">
               <Link
@@ -121,18 +118,19 @@ export default function ToastHost() {
         </div>
       </div>
 
+      {/* Stacked older toasts (compact, bottom right) */}
       {toasts.length > 1 && (
         <div className="fixed bottom-4 right-4 z-[9997] flex flex-col gap-2 max-w-xs">
-          {toasts.slice(0, -1).map((tt) => (
+          {toasts.slice(0, -1).map((t) => (
             <div
-              key={tt.id}
+              key={t.id}
               className={`bg-white border-l-4 rounded-md shadow-lg px-3 py-2 text-xs flex items-center justify-between gap-2 ${
-                tt.type === "success" ? "border-green-500" : "border-red-500"
+                t.type === "success" ? "border-green-500" : "border-red-500"
               }`}
             >
-              <span className="font-semibold truncate">{tt.title}</span>
+              <span className="font-semibold truncate">{t.title}</span>
               <button
-                onClick={() => dismiss(tt.id)}
+                onClick={() => dismiss(t.id)}
                 className="text-gray-400 hover:text-gray-700"
               >×</button>
             </div>

@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import api from "../lib/api";
 
+/**
+ * Floating "Buy Tickets" call-to-action.
+ * Routes the user to the DETAIL page of the active draw — one step before
+ * the buy flow — so they see prize info before committing.
+ * Hidden on the homepage (hero has same CTA) and during the buy/live flows.
+ */
 export default function StickyBuyCTA() {
-  const { t } = useTranslation();
   const location = useLocation();
   const [featuredSlug, setFeaturedSlug] = useState(null);
 
@@ -15,17 +19,21 @@ export default function StickyBuyCTA() {
     }).catch(() => {});
   }, []);
 
+  // Routes where we suppress the floating CTA
   const path = location.pathname;
   const hide =
-    path === "/" ||
+    path === "/" ||                                          // homepage hero has CTA
     path === "/login" ||
     path === "/register" ||
-    /^\/draws\/[^/]+\/buy$/.test(path) ||
-    /^\/draws\/[^/]+\/live$/.test(path) ||
+    /^\/draws\/[^/]+\/buy$/.test(path) ||                    // mid-purchase
+    /^\/draws\/[^/]+\/live$/.test(path) ||                   // live broadcast
+    // Also hide on the detail page we'd be linking to — redundant
     (featuredSlug && path === `/draws/${featuredSlug}`);
 
   if (hide) return null;
 
+  // Link to the DETAIL page (not /buy) so user sees the prize first.
+  // Fall back to /draws if no active draw.
   const target = featuredSlug ? `/draws/${featuredSlug}` : "/draws";
 
   return (
@@ -43,10 +51,10 @@ export default function StickyBuyCTA() {
         transition-all
         animate-bounceIn
       "
-      aria-label={t("sticky.buyTickets")}
+      aria-label="Buy tickets"
     >
       <span className="text-lg">🎟️</span>
-      <span>{t("sticky.buyTickets")}</span>
+      <span>Buy Tickets</span>
     </Link>
   );
 }
