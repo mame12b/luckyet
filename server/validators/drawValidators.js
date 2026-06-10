@@ -13,6 +13,7 @@ exports.createDrawSchema = z.object({
   title: z.string().min(3).max(200),
   slug: z.string().min(3).max(80).regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, and hyphens only"),
   description: z.string().max(2000).optional(),
+  heroImageUrl: z.string().url().optional().or(z.literal("")),
 
   // Multi-tier prizes (new approach)
   prizes: z.array(prizeSchema).min(1).max(5).optional(),
@@ -36,6 +37,7 @@ exports.createDrawSchema = z.object({
 exports.updateDrawSchema = z.object({
   title: z.string().min(3).max(200).optional(),
   description: z.string().max(2000).optional(),
+  heroImageUrl: z.string().url().optional().or(z.literal("")),
   prizes: z.array(prizeSchema).min(1).max(5).optional(),
   prizeName: z.string().min(2).max(200).optional(),
   prizeDescription: z.string().max(2000).optional(),

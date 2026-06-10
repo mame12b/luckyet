@@ -47,6 +47,8 @@ const drawSchema = new mongoose.Schema(
     prizeImages: [{ type: String }],
     prizeEstimatedValueETB: { type: Number, min: 0 },
 
+    heroImageUrl: { type: String, trim: true },
+
     // === NEW: multi-tier prize structure ===
     prizes: { type: [prizeSchema], default: [] },
 

@@ -1,0 +1,471 @@
+import { useEffect, useState, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import api from "../lib/api";
+import QRCard from "../components/QRCard";
+import { capturePromoFromUrl, getStoredPromo, clearStoredPromo } from "../lib/promo";
+
+const ROTATE_MS = 4000;
+
+const TIER_BADGE = {
+  1: "bg-amber-400 text-amber-950",
+  2: "bg-slate-300 text-slate-900",
+  3: "bg-amber-700 text-amber-50",
+  4: "bg-burgundy text-white",
+  5: "bg-burgundy-dark text-white",
+};
+const TIER_ICON = {
+  1: "🥇",
+  2: "🥈",
+  3: "🥉",
+  4: "🏅",
+  5: "🏅",
+};
+const TIER_THUMB_GRADIENT = {
+  1: "from-amber-400 to-amber-600",
+  2: "from-slate-300 to-slate-500",
+  3: "from-amber-600 to-amber-800",
+  4: "from-burgundy to-burgundy-dark",
+  5: "from-burgundy-dark to-burgundy",
+};
+
+const FALLBACK_HERO_BG = "linear-gradient(135deg, #f59e0b 0%, #d97706 35%, #8b1e3f 100%)";
+
+export default function Home() {
+  const { t } = useTranslation();
+  const [featured, setFeatured] = useState(null);
+  const [promo, setPromo] = useState(null);
+
+  useEffect(() => {
+    api.get("/draws").then(({ data }) => {
+      const active = (data.draws || []).find((d) => d.status === "active");
+      if (active) setFeatured(active);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const code = capturePromoFromUrl() || getStoredPromo();
+    if (!code) return;
+    api.get(`/streamers/validate/${code}`)
+      .then(({ data }) => {
+        if (data.valid) setPromo(data);
+        else clearStoredPromo();
+      })
+      .catch(() => clearStoredPromo());
+  }, []);
+
+  const dismissPromo = () => {
+    clearStoredPromo();
+    setPromo(null);
+  };
+
+  return (
+    <div className="bg-bg">
+      {promo && (
+        <div className="bg-burgundy text-white py-3 px-4 animate-slideIn">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-sm flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-base">🎁</span>
+              <span className="min-w-0">
+                {t("home.promoBanner.shoppingWith")} <span className="font-mono font-bold tracking-wider">{promo.promoCode}</span> —{" "}
+                {t("home.promoBanner.earnsCommission", { name: promo.streamerName })}
+              </span>
+            </div>
+            <button
+              onClick={dismissPromo}
+              className="text-white/70 hover:text-white text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap"
+              aria-label={t("home.promoBanner.remove")}
+            >
+              {t("home.promoBanner.remove")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Hero featured={featured} />
+
+      <section className="bg-white py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8">
+            <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">{t("home.winners.eyebrow")}</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold">{t("home.winners.title")}</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { name: t("home.winners.comingSoon"), prize: t("home.winners.firstWinner") },
+              { name: t("home.winners.comingSoon"), prize: t("home.winners.stayTuned") },
+              { name: t("home.winners.comingSoon"), prize: t("home.winners.ticketsSellingFast") },
+            ].map((w, i) => (
+              <div key={i} className="bg-surface border border-border rounded-xl p-5 text-center">
+                <div className="text-4xl mb-2">🏆</div>
+                <div className="font-bold">{w.name}</div>
+                <div className="text-sm text-text-muted">{w.prize}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-surface py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">{t("home.qrSection.eyebrow")}</div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">{t("home.qrSection.title")}</h2>
+              <p className="text-text-muted text-base mb-5 leading-relaxed">{t("home.qrSection.body")}</p>
+              <div className="flex flex-wrap gap-3">
+                <Link to="/draws" className="bg-burgundy text-white font-bold px-5 py-2.5 rounded-lg hover:bg-burgundy-dark transition text-sm">
+                  {t("home.qrSection.browseDraws")}
+                </Link>
+                <Link to="/how-it-works" className="bg-white border border-border font-semibold px-5 py-2.5 rounded-lg hover:bg-surface transition text-sm">
+                  {t("home.qrSection.learnMore")}
+                </Link>
+              </div>
+            </div>
+            <div className="flex justify-center md:justify-end">
+              <QRCard
+                title={t("home.qrSection.scanTitle")}
+                subtitle={t("home.qrSection.scanSubtitle")}
+                size={160}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ============================================================
+   HERO — full-bleed image + rotating tier text overlay
+============================================================ */
+function Hero({ featured }) {
+  const prizes = useMemo(() => {
+    if (!featured) return [];
+    if (featured.prizes?.length) return [...featured.prizes].sort((a, b) => a.tier - b.tier);
+    if (featured.prizeName) return [{
+      tier: 1,
+      name: featured.prizeName,
+      description: featured.prizeDescription,
+      imageUrl: featured.prizeImages?.[0],
+      estimatedValueETB: featured.prizeEstimatedValueETB,
+    }];
+    return [];
+  }, [featured]);
+
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  // Autoplay — rotate through prize tiers
+  useEffect(() => {
+    if (prizes.length < 2 || paused) return;
+    const tid = setInterval(() => setIdx((i) => (i + 1) % prizes.length), ROTATE_MS);
+    return () => clearInterval(tid);
+  }, [prizes.length, paused]);
+
+  // Clamp index if prizes shrinks
+  useEffect(() => {
+    if (idx >= prizes.length && prizes.length > 0) setIdx(0);
+  }, [prizes.length, idx]);
+
+  if (!featured || prizes.length === 0) return <EmptyHero />;
+
+  const prize = prizes[idx];
+
+  return (
+    <>
+      <CinematicHero
+        draw={featured}
+        prize={prize}
+        idx={idx}
+        onPauseChange={setPaused}
+      />
+      <StatsStrip draw={featured} />
+    </>
+  );
+}
+
+/* ============================================================
+   CinematicHero — full-bleed image with rotating text overlay
+============================================================ */
+function CinematicHero({ draw, prize, idx, onPauseChange }) {
+  const { t } = useTranslation();
+  const tierLabel = t(`home.showcase.tier${prize.tier}`, {
+    defaultValue: t("home.showcase.tierGeneric", { tier: prize.tier }),
+  });
+  const badgeClass = TIER_BADGE[prize.tier] || TIER_BADGE[1];
+  const tierIcon = TIER_ICON[prize.tier] || "🏅";
+  const thumbGradient = TIER_THUMB_GRADIENT[prize.tier] || TIER_THUMB_GRADIENT[1];
+
+  const hasHeroImage = !!draw.heroImageUrl;
+  const bgStyle = hasHeroImage
+    ? { backgroundImage: `url("${draw.heroImageUrl}")`, backgroundSize: "cover", backgroundPosition: "center" }
+    : { background: FALLBACK_HERO_BG };
+
+  return (
+    <section
+      className="relative w-full overflow-hidden"
+      style={{ height: "clamp(420px, 50vh, 500px)" }}
+      onMouseEnter={() => onPauseChange?.(true)}
+      onMouseLeave={() => onPauseChange?.(false)}
+    >
+      {/* Background image (or gradient fallback) */}
+      <div className="absolute inset-0" style={bgStyle}></div>
+
+      {/* Dark gradient overlay — for readability */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/40 to-black/10"></div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+
+      {/* Floating gold glow */}
+      <div className="absolute top-12 right-12 w-40 h-40 bg-amber-400/30 rounded-full blur-3xl pointer-events-none"></div>
+
+      {/* TIER THUMBNAIL — top-right corner, only when there are 2+ prizes */}
+      {/* This is the rotating thumbnail referenced in your design */}
+      {/* Hidden on mobile to keep mobile clean */}
+      <div className="hidden md:block absolute top-6 right-6 z-10">
+        <div key={`thumb-${idx}`} className="animate-zoomFadeIn">
+          <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${thumbGradient} shadow-2xl border-2 border-white/30 overflow-hidden flex items-center justify-center`}>
+            {prize.imageUrl ? (
+              <img
+                src={prize.imageUrl}
+                alt={prize.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <span className="text-3xl">{tierIcon}</span>
+            )}
+          </div>
+          <div className="mt-1.5 text-center text-[10px] text-white/85 font-semibold uppercase tracking-wider drop-shadow-md">
+            {tierIcon} {tierLabel.replace(/^[🥇🥈🥉🏅]\s*/, "")}
+          </div>
+        </div>
+      </div>
+
+      {/* Content overlay — bottom-left aligned */}
+      <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-8 flex items-end pb-6 sm:pb-10">
+        <div className="w-full max-w-2xl">
+
+          {/* MOBILE — minimal layout (everything below is hidden on md+) */}
+          <div className="md:hidden">
+            <h1
+              key={`mobile-name-${idx}`}
+              className="animate-zoomFadeIn text-3xl sm:text-4xl font-extrabold tracking-tight leading-[1.05] mb-4 drop-shadow-2xl"
+            >
+              <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 bg-clip-text text-transparent">
+                {prize.name}
+              </span>
+            </h1>
+            <Link
+              to={`/draws/${draw.slug}/buy`}
+              className="inline-flex items-center gap-2 bg-gradient-to-br from-amber-400 to-amber-600 text-burgundy font-extrabold px-5 py-3 rounded-xl hover:scale-105 transition shadow-2xl shadow-amber-500/50 active:scale-95 text-sm"
+            >
+              ▶ {t("home.featured.buyTicket", { price: draw.ticketPriceETB.toLocaleString() })}
+            </Link>
+          </div>
+
+          {/* DESKTOP — rich layout (hidden on mobile) */}
+          <div className="hidden md:block">
+            {/* Eyebrow */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm border border-white/20 px-3 py-1.5 rounded-full text-xs font-bold text-white uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+                {t("home.featured.liveNow")}
+                <span className="text-white/60">·</span>
+                <span className="text-white/90">{draw.title}</span>
+              </span>
+            </div>
+
+            {/* Rotating tier content */}
+            <div key={`desktop-${idx}`} className="animate-zoomFadeIn">
+              {/* Tier badge */}
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-4 shadow-lg ${badgeClass}`}>
+                <span>{tierIcon}</span>
+                <span>{tierLabel.replace(/^[🥇🥈🥉🏅]\s*/, "")}</span>
+              </div>
+
+              {/* "Win the" */}
+              <div className="text-white/85 text-base lg:text-lg font-medium mb-1 drop-shadow-md">
+                {t("home.showcase.winThe")}
+              </div>
+
+              {/* Prize name */}
+              <h1 className="text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] mb-3 drop-shadow-2xl">
+                <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200 bg-clip-text text-transparent">
+                  {prize.name}
+                </span>
+              </h1>
+
+              {/* Description */}
+              {prize.description && (
+                <p className="text-white/90 text-base font-medium leading-relaxed mb-5 max-w-lg drop-shadow-md">
+                  {prize.description}
+                </p>
+              )}
+            </div>
+
+            {/* CTA buttons (static — don't re-animate on rotation) */}
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <Link
+                to={`/draws/${draw.slug}/buy`}
+                className="inline-flex items-center gap-2 bg-gradient-to-br from-amber-400 to-amber-600 text-burgundy font-extrabold px-6 py-3.5 rounded-xl hover:scale-105 transition shadow-2xl shadow-amber-500/50 active:scale-95 text-base"
+              >
+                ▶ {t("home.featured.buyTicket", { price: draw.ticketPriceETB.toLocaleString() })}
+              </Link>
+              <Link
+                to="/how-it-works"
+                className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 text-white font-bold px-5 py-3 rounded-xl hover:bg-white/25 transition active:scale-95 text-sm"
+              >
+                {t("home.hero.howItWorks")}
+              </Link>
+            </div>
+
+            {/* Trust badges */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-white/85">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                {t("home.trust.anuPartner")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                {t("home.trust.verifiable")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+                {t("home.trust.ageOnly")}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+   StatsStrip — horizontal info bar below the hero
+============================================================ */
+function StatsStrip({ draw }) {
+  const { t } = useTranslation();
+  const [timeLeft, setTimeLeft] = useState(() => computeTimeLeft(draw.drawDate));
+
+  useEffect(() => {
+    if (!draw.drawDate) return;
+    const tid = setInterval(() => setTimeLeft(computeTimeLeft(draw.drawDate)), 1000);
+    return () => clearInterval(tid);
+  }, [draw.drawDate]);
+
+  const totalPrizeValue = (draw.prizes?.length
+    ? draw.prizes
+    : draw.prizeEstimatedValueETB ? [{ estimatedValueETB: draw.prizeEstimatedValueETB }] : []
+  ).reduce((sum, p) => sum + (p.estimatedValueETB || 0), 0);
+
+  const soldPct = (draw.ticketsSold / draw.ticketPoolSize) * 100;
+
+  return (
+    <section className="bg-white border-b border-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200 rounded-xl p-4 sm:p-5">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-amber-800 mb-1.5">
+              {t("home.showcase.jackpot")}
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-burgundy leading-none mb-0.5">
+              {totalPrizeValue.toLocaleString()}
+              <span className="text-sm font-bold text-text-muted ml-1.5">ETB</span>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-burgundy to-burgundy-dark text-white rounded-xl p-4 sm:p-5">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-2">
+              {timeLeft.expired ? t("home.featured.drawClosed") : t("home.featured.drawClosesIn")}
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              <CountUnit value={timeLeft.days} label="D" />
+              <CountUnit value={timeLeft.hours} label="H" />
+              <CountUnit value={timeLeft.minutes} label="M" />
+              <CountUnit value={timeLeft.seconds} label="S" />
+            </div>
+          </div>
+
+          <div className="bg-white border border-border rounded-xl p-4 sm:p-5">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-1.5">
+              {t("home.featured.ticketsSold")}
+            </div>
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-xl sm:text-2xl font-extrabold">
+                {draw.ticketsSold.toLocaleString()}
+              </span>
+              <span className="text-xs text-text-muted">
+                / {draw.ticketPoolSize.toLocaleString()}
+              </span>
+            </div>
+            <div className="h-2 bg-surface rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-700"
+                style={{ width: `${Math.min(100, soldPct)}%` }}
+              ></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CountUnit({ value, label }) {
+  return (
+    <div className="bg-white/10 backdrop-blur rounded-md py-1.5 text-center">
+      <div className="text-lg sm:text-xl font-extrabold font-mono leading-none">
+        {String(value).padStart(2, "0")}
+      </div>
+      <div className="text-[8px] uppercase tracking-wider opacity-70 mt-0.5">{label}</div>
+    </div>
+  );
+}
+
+function EmptyHero() {
+  const { t } = useTranslation();
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-br from-amber-50 via-white to-burgundy-light">
+      <div className="absolute inset-0 opacity-[0.04]" style={{
+        backgroundImage: 'radial-gradient(#8b1e3f 1px, transparent 1px)',
+        backgroundSize: '24px 24px',
+      }}></div>
+      <div className="max-w-3xl mx-auto px-6 py-20 sm:py-28 text-center relative">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl shadow-lg mb-6 text-4xl">
+          🏆
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
+          {t("home.showcase.noActiveTitle")}
+        </h1>
+        <p className="text-text-muted text-lg leading-relaxed mb-7 max-w-xl mx-auto">
+          {t("home.showcase.noActiveBody")}
+        </p>
+        <Link
+          to="/register"
+          className="inline-flex items-center gap-2 bg-burgundy text-white font-bold px-6 py-3.5 rounded-lg hover:bg-burgundy-dark transition shadow-lg shadow-burgundy/20 active:scale-95"
+        >
+          {t("home.showcase.noActiveCta")} →
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function computeTimeLeft(drawDate) {
+  if (!drawDate) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  const now = new Date().getTime();
+  const target = new Date(drawDate).getTime();
+  const diff = target - now;
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+    expired: false,
+  };
+}

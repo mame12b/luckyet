@@ -282,6 +282,7 @@ export default function DrawEdit() {
                 <p className="text-sm text-text-muted leading-relaxed">{draw.description}</p>
               </div>
             )}
+            <EditableHeroImage draw={draw} onSaved={load} />
           </div>
 
           <div className="space-y-4">
@@ -528,6 +529,124 @@ function EditablePoolSize({ draw, onSaved }) {
         </button>
       </div>
       {error && <div className="text-[10px] text-danger mt-1">{error}</div>}
+    </div>
+  );
+}
+
+function EditableHeroImage({ draw, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(draw.heroImageUrl || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async () => {
+    setError("");
+    const trimmed = value.trim();
+    if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+      setError("Must be a full URL starting with http(s)://");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.patch(`/admin/draws/${draw._id}`, { heroImageUrl: trimmed });
+      setEditing(false);
+      onSaved?.();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm("Remove the hero image?")) return;
+    setSaving(true);
+    try {
+      await api.patch(`/admin/draws/${draw._id}`, { heroImageUrl: "" });
+      setValue("");
+      setEditing(false);
+      onSaved?.();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to remove");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white border border-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="font-semibold text-sm">Hero background image</h3>
+          <p className="text-[11px] text-text-muted mt-0.5">Shown as the full-bleed background on the homepage hero. Recommended: 1600×900 or larger.</p>
+        </div>
+        {!editing && (
+          <button
+            onClick={() => { setValue(draw.heroImageUrl || ""); setEditing(true); }}
+            className="text-xs text-brand-dark font-semibold hover:underline"
+          >
+            {draw.heroImageUrl ? "Edit" : "Add"}
+          </button>
+        )}
+      </div>
+
+      {!editing ? (
+        draw.heroImageUrl ? (
+          <div className="aspect-video w-full rounded-lg overflow-hidden border border-border bg-surface">
+            <img src={draw.heroImageUrl} alt="Hero" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="aspect-video w-full rounded-lg border-2 border-dashed border-border bg-surface flex items-center justify-center text-text-faint text-xs">
+            No hero image set — homepage will use a gold gradient placeholder
+          </div>
+        )
+      ) : (
+        <div className="space-y-2">
+          <input
+            type="url"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="https://images.unsplash.com/photo-..."
+            className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-2 text-sm"
+          />
+          {value && /^https?:\/\//i.test(value) && (
+            <div className="aspect-video w-full rounded-lg overflow-hidden border border-border bg-surface">
+              <img
+                src={value}
+                alt="Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+            </div>
+          )}
+          {error && <div className="text-xs text-danger">{error}</div>}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={save}
+              disabled={saving}
+              className="text-xs bg-brand text-white font-semibold px-3 py-1.5 rounded hover:bg-brand-dark disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => { setEditing(false); setError(""); }}
+              disabled={saving}
+              className="text-xs text-text-muted px-2 py-1.5"
+            >
+              Cancel
+            </button>
+            {draw.heroImageUrl && (
+              <button
+                onClick={remove}
+                disabled={saving}
+                className="text-xs text-danger hover:underline ml-auto"
+              >
+                Remove image
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

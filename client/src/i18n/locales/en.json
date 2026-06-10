@@ -92,6 +92,28 @@
       "shoppingWith": "Shopping with",
       "earnsCommission": "your friend {{name}} earns commission on your tickets.",
       "remove": "Remove"
+    },
+    "showcase": {
+      "eyebrowLive": "🎰 Live now",
+      "noActiveTitle": "Next big draw, coming soon",
+      "noActiveBody": "We're preparing something special. Be the first to know when it launches.",
+      "noActiveCta": "Get notified",
+      "winThe": "Win the",
+      "or": "or take",
+      "cashEquivalent": "cash equivalent",
+      "valueLabel": "Estimated value",
+      "tier1": "🥇 Grand Prize",
+      "tier2": "🥈 2nd Prize",
+      "tier3": "🥉 3rd Prize",
+      "tier4": "🏅 4th Prize",
+      "tier5": "🏅 5th Prize",
+      "tierGeneric": "Prize {{tier}}",
+      "prizeOfTotal": "Prize {{current}} of {{total}}",
+      "prevPrize": "Previous prize",
+      "nextPrize": "Next prize",
+      "jackpot": "Jackpot",
+      "jackpotValue": "{{value}} ETB",
+      "statsLive": "🎰 Live now · {{title}}"
     }
   },
   "auth": {

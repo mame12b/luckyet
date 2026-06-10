@@ -30,6 +30,8 @@ services:
       SEED_ADMIN_PHONE: ${SEED_ADMIN_PHONE}
       SEED_ADMIN_PIN: ${SEED_ADMIN_PIN}
       SEED_ADMIN_NAME: ${SEED_ADMIN_NAME}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-LuckyET Support <mame34005@gmail.com>}
     volumes:
       - ./data/uploads:/app/uploads/receipts
     restart: unless-stopped

@@ -25,4 +25,15 @@ router.post("/change-pin", requireAuth, validate({ body: changePinSchema }), ctr
 
 router.patch("/me/language", requireAuth, ctrl.updateLanguage);
 
+
+// TEMPORARY — for testing email infrastructure. DELETE AFTER PHASE A VERIFICATION.
+router.post("/test-email", async (req, res) => {
+
+  const { sendOTPEmail } = require("../services/emailService");
+  const { email, name } = req.body;
+  if (!email) return res.status(400).json({ message: "email required" });
+  const result = await sendOTPEmail(email, "123456", name || "Test User");
+  res.json(result);
+});
+
 module.exports = router;

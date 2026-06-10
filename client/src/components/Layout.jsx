@@ -5,7 +5,7 @@ import { useAuthStore } from "../store/auth";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Layout({ children }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();          // ← only change: also pull i18n
   const { user, clear } = useAuthStore();
   const nav = useNavigate();
   const location = useLocation();
@@ -31,6 +31,13 @@ export default function Layout({ children }) {
 
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  // ── FIX: close mobile drawer whenever language is switched ─────────────
+  useEffect(() => {
+    const onLangChange = () => setMobileOpen(false);
+    i18n.on("languageChanged", onLangChange);
+    return () => i18n.off("languageChanged", onLangChange);
+  }, [i18n]);
 
   const handleSignOut = () => {
     clear();
@@ -159,7 +166,7 @@ export default function Layout({ children }) {
               )}
             </nav>
 
-            {/* Language switcher */}
+            {/* Language switcher — drawer auto-closes on language change via i18n listener above */}
             <div className="border-t border-border p-4">
               <div className="text-xs text-text-muted mb-2 font-semibold uppercase tracking-wider">{t("nav.language")}</div>
               <LanguageSwitcher />

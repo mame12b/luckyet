@@ -1,0 +1,122 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import api from "../lib/api";
+import QRCard from "../components/QRCard";
+import PrizeShowcaseHero from "../components/PrizeShowcaseHero";
+import { capturePromoFromUrl, getStoredPromo, clearStoredPromo } from "../lib/promo";
+
+export default function Home() {
+  const { t } = useTranslation();
+  const [featured, setFeatured] = useState(null);
+  const [promo, setPromo] = useState(null);
+
+  // Load the active draw — its prizes drive the hero showcase
+  useEffect(() => {
+    api.get("/draws").then(({ data }) => {
+      const active = (data.draws || []).find((d) => d.status === "active");
+      if (active) setFeatured(active);
+    }).catch(() => {});
+  }, []);
+
+  // Capture promo code from QR scan OR previous visit
+  useEffect(() => {
+    const code = capturePromoFromUrl() || getStoredPromo();
+    if (!code) return;
+    api.get(`/streamers/validate/${code}`)
+      .then(({ data }) => {
+        if (data.valid) setPromo(data);
+        else clearStoredPromo();
+      })
+      .catch(() => clearStoredPromo());
+  }, []);
+
+  const dismissPromo = () => {
+    clearStoredPromo();
+    setPromo(null);
+  };
+
+  return (
+    <div className="bg-bg">
+
+      {/* Promo banner — visible when buyer arrived via promoter's QR */}
+      {promo && (
+        <div className="bg-burgundy text-white py-3 px-4 animate-slideIn">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-sm flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-base">🎁</span>
+              <span className="min-w-0">
+                {t("home.promoBanner.shoppingWith")} <span className="font-mono font-bold tracking-wider">{promo.promoCode}</span> —{" "}
+                {t("home.promoBanner.earnsCommission", { name: promo.streamerName })}
+              </span>
+            </div>
+            <button
+              onClick={dismissPromo}
+              className="text-white/70 hover:text-white text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap"
+              aria-label={t("home.promoBanner.remove")}
+            >
+              {t("home.promoBanner.remove")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== HERO — Prize Showcase (cycles through prize tiers) ===== */}
+      <PrizeShowcaseHero draw={featured} />
+
+      {/* ===== Recent Winners ===== */}
+      <section className="bg-white py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-8">
+            <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">{t("home.winners.eyebrow")}</div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold">{t("home.winners.title")}</h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { name: t("home.winners.comingSoon"), prize: t("home.winners.firstWinner") },
+              { name: t("home.winners.comingSoon"), prize: t("home.winners.stayTuned") },
+              { name: t("home.winners.comingSoon"), prize: t("home.winners.ticketsSellingFast") },
+            ].map((w, i) => (
+              <div key={i} className="bg-surface border border-border rounded-xl p-5 text-center">
+                <div className="text-4xl mb-2">🏆</div>
+                <div className="font-bold">{w.name}</div>
+                <div className="text-sm text-text-muted">{w.prize}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== QR + How to play ===== */}
+      <section className="bg-surface py-12 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <div className="text-xs font-bold text-burgundy uppercase tracking-widest mb-1">{t("home.qrSection.eyebrow")}</div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">{t("home.qrSection.title")}</h2>
+              <p className="text-text-muted text-base mb-5 leading-relaxed">
+                {t("home.qrSection.body")}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link to="/draws" className="bg-burgundy text-white font-bold px-5 py-2.5 rounded-lg hover:bg-burgundy-dark transition text-sm">
+                  {t("home.qrSection.browseDraws")}
+                </Link>
+                <Link to="/how-it-works" className="bg-white border border-border font-semibold px-5 py-2.5 rounded-lg hover:bg-surface transition text-sm">
+                  {t("home.qrSection.learnMore")}
+                </Link>
+              </div>
+            </div>
+            <div className="flex justify-center md:justify-end">
+              <QRCard
+                title={t("home.qrSection.scanTitle")}
+                subtitle={t("home.qrSection.scanSubtitle")}
+                size={160}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

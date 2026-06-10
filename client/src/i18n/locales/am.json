@@ -92,6 +92,28 @@
       "shoppingWith": "በ",
       "earnsCommission": "እየገበዩ ነው — ጓደኛዎ {{name}} በቲኬቶችዎ ላይ ኮሚሽን ያገኛል።",
       "remove": "ያስወግዱ"
+    },
+    "showcase": {
+      "eyebrowLive": "🎰 አሁን ቀጥታ",
+      "noActiveTitle": "ቀጣዩ ትልቅ ድልድል በቅርቡ",
+      "noActiveBody": "ልዩ ነገር እያዘጋጀን ነው። ሲጀመር መጀመሪያ የሚያውቁት ይሁኑ።",
+      "noActiveCta": "ማሳወቂያ ይቀበሉ",
+      "winThe": "ይዘው ይውጡ",
+      "or": "ወይም ይውሰዱ",
+      "cashEquivalent": "ጥሬ ገንዘብ አቻ",
+      "valueLabel": "የተገመተ ዋጋ",
+      "tier1": "🥇 ግራንድ ሽልማት",
+      "tier2": "🥈 2ኛ ሽልማት",
+      "tier3": "🥉 3ኛ ሽልማት",
+      "tier4": "🏅 4ኛ ሽልማት",
+      "tier5": "🏅 5ኛ ሽልማት",
+      "tierGeneric": "ሽልማት {{tier}}",
+      "prizeOfTotal": "ሽልማት {{current}} ከ {{total}}",
+      "prevPrize": "የቀደመው ሽልማት",
+      "nextPrize": "የሚቀጥለው ሽልማት",
+      "jackpot": "ዋንጫ",
+      "jackpotValue": "{{value}} ብር",
+      "statsLive": "🎰 አሁን ቀጥታ · {{title}}"
     }
   },
   "auth": {

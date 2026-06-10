@@ -79,7 +79,7 @@ useEffect(() => {
             } />
           </Routes>
           <ToastHost />
-          <StickyBuyCTA />
+          <StickyBuyCTA /> 
         </Layout>
       } />
     </Routes>
