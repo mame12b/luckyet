@@ -32,8 +32,11 @@ services:
       SEED_ADMIN_NAME: ${SEED_ADMIN_NAME}
       RESEND_API_KEY: ${RESEND_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM:-LuckyET Support <mame34005@gmail.com>}
+      WWEBJS_AUTH_PATH: /app/.wwebjs_auth
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
     volumes:
       - ./data/uploads:/app/uploads/receipts
+      - wwebjs_auth:/app/.wwebjs_auth
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/"]
@@ -85,3 +88,6 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
+
+volumes:
+  wwebjs_auth:

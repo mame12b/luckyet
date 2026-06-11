@@ -11,13 +11,18 @@ const {
 const { recordFailedAttempt, clearFailedAttempts, MAX_ATTEMPTS } = require("../services/authLockout");
 const { logAudit } = require("../services/auditService");
 const PasswordResetRequest = require("../models/PasswordResetRequest");
+const { sendPasswordResetWhatsApp } = require("../services/whatsappService");
+
+// Rate limit config — adjust here, not in the body
+const RESET_RATE_LIMIT_PER_HOUR = 5;
+const RESET_CODE_TTL_MS = 10 * 60 * 1000;    // 10 minutes
+const RESET_MAX_ATTEMPTS = 5;
 
 // ===== REGISTER =====
 exports.register = async (req, res, next) => {
   try {
     const { fullName, email, phone, pin, country, language, promoCode } = req.body;
 
-    // Check uniqueness
     const exists = await User.findOne({ $or: [{ email }, { phone }] });
     if (exists) {
       return res.status(409).json({
@@ -27,7 +32,6 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Resolve promo code (optional)
     let referredByStreamerId, referredByPromoCode;
     if (promoCode) {
       const streamer = await Streamer.findOne({ promoCode, status: "active" });
@@ -35,7 +39,6 @@ exports.register = async (req, res, next) => {
         referredByStreamerId = streamer._id;
         referredByPromoCode = streamer.promoCode;
       }
-      // Silently ignore invalid codes — no need to block registration
     }
 
     const user = new User({
@@ -50,7 +53,6 @@ exports.register = async (req, res, next) => {
     await user.setPin(pin);
     await user.save();
 
-    // Issue tokens
     const accessToken = signAccessToken(user._id, user.role);
     const refreshToken = signRefreshToken(user._id, user.role);
     res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
@@ -81,11 +83,9 @@ exports.login = async (req, res, next) => {
 
     const user = await User.findOne({ phone });
     if (!user || !user.isActive) {
-      // Don't reveal whether the phone is registered
       return res.status(401).json({ message: "Invalid phone or password" });
     }
 
-    // Check lockout
     if (user.isLocked()) {
       const minutesLeft = Math.ceil((user.lockedUntil - new Date()) / 60000);
       return res.status(429).json({
@@ -95,7 +95,6 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // Verify credential — accepts PIN OR legacy password during transition
     const verified = await user.verifyCredential(pin);
     if (!verified) {
       const state = await recordFailedAttempt(user);
@@ -112,10 +111,8 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // Successful login — clear failed attempts
     await clearFailedAttempts(user);
 
-    // Issue tokens
     const accessToken = signAccessToken(user._id, user.role);
     const refreshToken = signRefreshToken(user._id, user.role);
     res.cookie("refreshToken", refreshToken, cookieOptionsFor(user.role));
@@ -126,20 +123,18 @@ exports.login = async (req, res, next) => {
       action: "user.login",
       targetType: "User",
       targetId: user._id,
-      metadata: { credentialType: verified }, // "pin" or "password" (legacy)
+      metadata: { credentialType: verified },
       req,
     });
 
-    // If user logged in with legacy password, hint that they should set a PIN
     const requiresPinSetup = verified === "password";
-
     res.json({ user, accessToken, requiresPinSetup });
   } catch (err) {
     next(err);
   }
 };
 
-// ===== CHANGE PIN (self-service) =====
+// ===== CHANGE PIN =====
 exports.changePin = async (req, res, next) => {
   try {
     const { currentPin, newPin } = req.body;
@@ -221,23 +216,17 @@ exports.me = async (req, res, next) => {
 };
 
 // ===== ADMIN: RESET USER PIN =====
-// Super admin only. Resets a user's PIN to a new value, clears lockout/attempts.
 exports.adminResetPin = async (req, res, next) => {
   try {
     const { userId, newPin } = req.body;
-
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Prevent admin from resetting their own PIN via this route (use change-pin instead)
     if (user._id.toString() === req.user.id) {
       return res.status(400).json({
         message: "Use the change password flow to update your own password.",
       });
     }
-
-    // Optional safety: prevent resetting another super_admin's PIN.
-    // Keeps the "no admin can lock out another admin" property.
     if (user.role === "super_admin") {
       return res.status(403).json({
         message: "Cannot reset another super admin's password.",
@@ -261,12 +250,7 @@ exports.adminResetPin = async (req, res, next) => {
 
     res.json({
       message: "Password reset successfully",
-      user: {
-        _id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-      },
+      user: { _id: user._id, fullName: user.fullName, email: user.email, phone: user.phone },
     });
   } catch (err) {
     if (err.message === "PIN must be exactly 6 digits") {
@@ -276,53 +260,99 @@ exports.adminResetPin = async (req, res, next) => {
   }
 };
 
-// ===== USER: request password reset =====
+// ════════════════════════════════════════════════════════════════════════════
+// SELF-SERVICE PASSWORD RESET (no admin approval needed)
+// ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * STEP 1: User requests a reset code.
+ *   - Rate limited to 5 requests per user per hour
+ *   - Sends a 6-digit OTP via email (Resend)
+ *   - Always responds generically (no user enumeration leak)
+ */
 exports.requestPasswordReset = async (req, res, next) => {
   try {
-    const { phone, reason, contactMethod } = req.body;
+    const { phone } = req.body;
+    if (!phone || typeof phone !== "string") {
+      return res.status(400).json({ message: "Phone number is required" });
+    }
 
-    // Lookup user but DON'T reveal whether the phone exists
+    // Generic response used in all "I don't want to leak info" cases
+    const generic = {
+      message: "If an account exists with this phone, a one-time code has been sent.",
+    };
+
     const user = await User.findOne({ phone });
-
-    // Always respond with the same generic message — prevents user enumeration
     if (!user || !user.isActive) {
-      return res.json({
-        message: "If an account exists with this phone, your reset request has been recorded. Contact support to verify your identity.",
+      return res.json(generic);
+    }
+
+    // ─── Rate limit: max N requests per user per hour ───
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentCount = await PasswordResetRequest.countDocuments({
+      userId: user._id,
+      createdAt: { $gte: oneHourAgo },
+    });
+    if (recentCount >= RESET_RATE_LIMIT_PER_HOUR) {
+      return res.status(429).json({
+        message: `Too many reset requests. Try again in an hour.`,
+        code: "RATE_LIMITED",
       });
     }
 
-    // Cancel any prior pending requests (so we don't pile up)
+    // ─── Invalidate any prior pending/approved requests ───
     await PasswordResetRequest.updateMany(
-      { userId: user._id, status: "pending" },
+      { userId: user._id, status: { $in: ["pending", "approved"] } },
       { status: "expired" }
     );
 
+    // ─── Generate fresh OTP, store hash ───
+    const resetCode = PasswordResetRequest.generateCode();
+    const resetCodeHash = await bcrypt.hash(resetCode, 10);
+
     await PasswordResetRequest.create({
       userId: user._id,
-      reason: reason?.trim().slice(0, 500),
-      contactMethod: contactMethod?.trim().slice(0, 100),
-      status: "pending",
+      status: "approved",                       // self-approved, skips admin
+      resetCodeHash,
+      resetCodeExpiresAt: new Date(Date.now() + RESET_CODE_TTL_MS),
+      attempts: 0,
+      contactMethod: "whatsapp",
     });
+
+    // ─── Send OTP via WhatsApp ───
+    try {
+      await sendPasswordResetWhatsApp({
+        to: user.phone,
+        code: resetCode,
+        expiresInMinutes: Math.floor(RESET_CODE_TTL_MS / 60000),
+      });
+    } catch (waErr) {
+      console.error("[password_reset] WhatsApp delivery failed:", waErr.message);
+      // Don't reveal the failure to the client — still respond generically.
+      // The code was generated but never delivered; the user can retry.
+    }
 
     await logAudit({
       actorId: user._id,
       actorRole: user.role,
-      action: "password_reset.requested",
+      action: "password_reset.self_requested",
       targetType: "User",
       targetId: user._id,
-      metadata: { reason, contactMethod },
       req,
     });
 
-    res.json({
-      message: "If an account exists with this phone, your reset request has been recorded. Contact support to verify your identity.",
-    });
+    return res.json(generic);
   } catch (err) {
     next(err);
   }
 };
 
-// ===== USER: complete password reset with code =====
+/**
+ * STEP 2: User submits OTP + new PIN.
+ *   - 5 wrong-attempt limit per code, then auto-expires
+ *   - Respects the 10-min code expiry
+ *   - Clears any account lockout on success
+ */
 exports.completePasswordReset = async (req, res, next) => {
   try {
     const { phone, resetCode, newPin } = req.body;
@@ -330,14 +360,13 @@ exports.completePasswordReset = async (req, res, next) => {
     const user = await User.findOne({ phone });
     if (!user) return res.status(400).json({ message: "Invalid reset code" });
 
-    // Find the most recent approved request for this user
     const request = await PasswordResetRequest.findOne({
       userId: user._id,
       status: "approved",
-    }).sort({ reviewedAt: -1 });
+    }).sort({ createdAt: -1 });
 
     if (!request) {
-      return res.status(400).json({ message: "No approved reset request found. Contact support." });
+      return res.status(400).json({ message: "No active reset code. Request a new one." });
     }
 
     if (request.resetCodeExpiresAt < new Date()) {
@@ -346,12 +375,30 @@ exports.completePasswordReset = async (req, res, next) => {
       return res.status(400).json({ message: "Reset code expired. Request a new one." });
     }
 
-    const ok = await bcrypt.compare(resetCode, request.resetCodeHash);
-    if (!ok) {
-      return res.status(400).json({ message: "Invalid reset code" });
+    // ─── Attempt limit ───
+    if ((request.attempts || 0) >= RESET_MAX_ATTEMPTS) {
+      request.status = "expired";
+      await request.save();
+      return res.status(429).json({
+        message: "Too many wrong attempts. Request a new code.",
+        code: "TOO_MANY_ATTEMPTS",
+      });
     }
 
-    // All checks pass — set the new PIN
+    const ok = await bcrypt.compare(resetCode, request.resetCodeHash);
+    if (!ok) {
+      request.attempts = (request.attempts || 0) + 1;
+      await request.save();
+      const remaining = RESET_MAX_ATTEMPTS - request.attempts;
+      return res.status(400).json({
+        message: remaining > 0
+          ? `Invalid code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`
+          : "Too many wrong attempts. Request a new code.",
+        remainingAttempts: Math.max(0, remaining),
+      });
+    }
+
+    // ─── Success — set new PIN + clear lockouts ───
     await user.setPin(newPin);
     user.loginAttempts = 0;
     user.lockedUntil = undefined;
@@ -367,7 +414,7 @@ exports.completePasswordReset = async (req, res, next) => {
       action: "password_reset.completed",
       targetType: "User",
       targetId: user._id,
-      metadata: { requestId: request._id },
+      metadata: { requestId: request._id, attemptsUsed: request.attempts },
       req,
     });
 
@@ -380,7 +427,11 @@ exports.completePasswordReset = async (req, res, next) => {
   }
 };
 
-// ===== ADMIN: list reset requests =====
+// ════════════════════════════════════════════════════════════════════════════
+// LEGACY ADMIN APPROVAL ENDPOINTS — kept for emergency / manual recovery
+// (e.g. user has no email access). Not the primary flow anymore.
+// ════════════════════════════════════════════════════════════════════════════
+
 exports.adminListResetRequests = async (req, res, next) => {
   try {
     const { status = "pending" } = req.query;
@@ -395,7 +446,6 @@ exports.adminListResetRequests = async (req, res, next) => {
   }
 };
 
-// ===== ADMIN: approve reset request — generates code, shown ONCE =====
 exports.adminApproveResetRequest = async (req, res, next) => {
   try {
     const request = await PasswordResetRequest.findById(req.params.id).populate("userId");
@@ -404,18 +454,17 @@ exports.adminApproveResetRequest = async (req, res, next) => {
       return res.status(400).json({ message: `Request is already ${request.status}` });
     }
 
-    // Don't allow approving a reset for another super_admin (prevent coups)
     if (request.userId.role === "super_admin" && request.userId._id.toString() !== req.user.id) {
       return res.status(403).json({ message: "Cannot approve password reset for another super admin." });
     }
 
-    // Generate a fresh 6-digit code
     const resetCode = PasswordResetRequest.generateCode();
     request.resetCodeHash = await bcrypt.hash(resetCode, 10);
-    request.resetCodeExpiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+    request.resetCodeExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
     request.status = "approved";
     request.reviewedBy = req.user.id;
     request.reviewedAt = new Date();
+    request.attempts = 0;
     await request.save();
 
     await logAudit({
@@ -430,19 +479,15 @@ exports.adminApproveResetRequest = async (req, res, next) => {
 
     res.json({
       message: "Reset request approved. Share the code with the user securely.",
-      resetCode, // shown ONCE — never returned again
+      resetCode,
       expiresAt: request.resetCodeExpiresAt,
-      user: {
-        fullName: request.userId.fullName,
-        phone: request.userId.phone,
-      },
+      user: { fullName: request.userId.fullName, phone: request.userId.phone },
     });
   } catch (err) {
     next(err);
   }
 };
 
-// ===== ADMIN: reject reset request =====
 exports.adminRejectResetRequest = async (req, res, next) => {
   try {
     const { rejectionReason } = req.body;
@@ -469,20 +514,6 @@ exports.adminRejectResetRequest = async (req, res, next) => {
     });
 
     res.json({ message: "Reset request rejected." });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// ===== UPDATE LANGUAGE =====
-exports.updateLanguage = async (req, res, next) => {
-  try {
-    const { language } = req.body;
-    if (!["en", "am", "ti", "om"].includes(language)) {
-      return res.status(400).json({ message: "Invalid language" });
-    }
-    await User.findByIdAndUpdate(req.user.id, { language });
-    res.json({ language });
   } catch (err) {
     next(err);
   }

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api from "../lib/api";
 
@@ -14,17 +14,31 @@ const PHONE_CODES = [
   { code: "+44",  flag: "🇬🇧", label: "UK" },
 ];
 
+// Try to split a stored full phone like "+97150123456" back into code + number
+function splitPhone(fullPhone) {
+  if (!fullPhone) return null;
+  const match = PHONE_CODES.find(c => fullPhone.startsWith(c.code));
+  if (!match) return null;
+  return { code: match, rest: fullPhone.slice(match.code.length) };
+}
+
 export default function ResetPassword() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  const [phoneCode, setPhoneCode] = useState(PHONE_CODES[0]);
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const location = useLocation();
+
+  // Prefill phone if we arrived from ForgotPassword (via location.state.phone)
+  const prefilled = splitPhone(location.state?.phone);
+
+  const [phoneCode, setPhoneCode] = useState(prefilled?.code || PHONE_CODES[0]);
+  const [phoneNumber, setPhoneNumber] = useState(prefilled?.rest || "");
   const [resetCode, setResetCode] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [remainingAttempts, setRemainingAttempts] = useState(null);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -45,7 +59,16 @@ export default function ResetPassword() {
       setSuccess(true);
       setTimeout(() => nav("/login"), 2500);
     } catch (err) {
-      setError(err.response?.data?.message || t("auth.reset.resetFailed"));
+      const data = err.response?.data || {};
+      setError(data.message || t("auth.reset.resetFailed"));
+      // Surface attempts-remaining if backend included it
+      if (typeof data.remainingAttempts === "number") {
+        setRemainingAttempts(data.remainingAttempts);
+      }
+      // If TOO_MANY_ATTEMPTS, suggest requesting a new code
+      if (data.code === "TOO_MANY_ATTEMPTS") {
+        setRemainingAttempts(0);
+      }
     } finally {
       setLoading(false);
     }
@@ -70,7 +93,9 @@ export default function ResetPassword() {
       <div className="w-full max-w-md">
         <div className="bg-white border border-border rounded-2xl p-5 sm:p-7 shadow-card">
           <h1 className="text-2xl font-extrabold mb-1">{t("auth.reset.title")}</h1>
-          <p className="text-text-muted text-sm mb-5">{t("auth.reset.subtitle")}</p>
+          <p className="text-text-muted text-sm mb-5">
+            {t("auth.reset.subtitle", "Enter the 6-digit code we sent to your WhatsApp and choose a new password.")}
+          </p>
 
           <form onSubmit={submit} className="space-y-3.5">
             <div>
@@ -139,7 +164,18 @@ export default function ResetPassword() {
               />
             </div>
 
-            {error && <div className="bg-danger-light text-danger text-xs px-3 py-2 rounded-md">{error}</div>}
+            {error && (
+              <div className="bg-danger-light text-danger text-xs px-3 py-2 rounded-md">
+                {error}
+                {remainingAttempts === 0 && (
+                  <div className="mt-2">
+                    <Link to="/forgot-password" className="text-brand-dark font-bold underline">
+                      {t("auth.reset.requestNewCode", "Request a new code")} →
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             <button
               type="submit"
@@ -152,7 +188,10 @@ export default function ResetPassword() {
         </div>
 
         <p className="text-center text-sm text-text-muted mt-5">
-          {t("auth.reset.needCodeQuestion")} <Link to="/forgot-password" className="text-brand-dark font-semibold hover:underline">{t("auth.reset.requestReset")}</Link>
+          {t("auth.reset.needCodeQuestion")}{" "}
+          <Link to="/forgot-password" className="text-brand-dark font-semibold hover:underline">
+            {t("auth.reset.requestReset")}
+          </Link>
         </p>
       </div>
     </div>

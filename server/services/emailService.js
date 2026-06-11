@@ -1,96 +1,79 @@
+/* ============================================================
+   services/emailService.js   (or wherever your services live)
+   ────────────────────────────────────────────────────────────
+   Resend OTP email delivery. Once the LuckyET domain is verified
+   in the Resend dashboard, swap the `from` address below.
+============================================================ */
+
 const { Resend } = require("resend");
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const EMAIL_FROM = process.env.EMAIL_FROM || "LuckyET <onboarding@resend.dev>";
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
-// Initialize client only if API key is present
-const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+// Adjust once your domain is verified in Resend
+const FROM_ADDRESS = process.env.RESEND_FROM || "LuckyET <onboarding@resend.dev>";
 
 /**
- * Send a password-reset OTP email.
- * @param {string} email - Recipient email address
- * @param {string} otp - The 6-digit code to send (plaintext — not the hash)
- * @param {string} fullName - User's full name for personalization
- * @returns {Promise<{ ok: boolean, providerId?: string, error?: string }>}
+ * Sends a 6-digit password reset code to the user's email.
+ * Throws if Resend isn't configured or the request fails.
+ *
+ * @param {Object} opts
+ * @param {string} opts.to          - recipient email
+ * @param {string} [opts.name]      - user's full name (for greeting)
+ * @param {string} opts.code        - the 6-digit OTP
+ * @param {number} [opts.expiresInMinutes=10]
  */
-async function sendOTPEmail(email, otp, fullName) {
-  const firstName = (fullName || "there").split(" ")[0];
-
-  const subject = "Your LuckyET password reset code";
-
-  const text = [
-    `Hi ${firstName},`,
-    "",
-    "Use this code to reset your LuckyET password:",
-    "",
-    `    ${otp}`,
-    "",
-    "This code expires in 10 minutes.",
-    "",
-    "If you didn't request this, you can safely ignore this email.",
-    "",
-    "— LuckyET Team",
-  ].join("\n");
-
-  const html = `
-    <div style="font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; color: #1a1a1a;">
-      <div style="text-align: center; margin-bottom: 32px;">
-        <div style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #8b1e3f; font-weight: 800; font-size: 20px; padding: 8px 16px; border-radius: 8px;">LuckyET</div>
-      </div>
-
-      <h1 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0;">Password reset code</h1>
-      <p style="font-size: 15px; color: #666; margin: 0 0 24px 0;">Hi ${firstName}, use this code to reset your LuckyET password:</p>
-
-      <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
-        <div style="font-family: 'SF Mono', Menlo, monospace; font-size: 36px; font-weight: 800; letter-spacing: 0.3em; color: #8b1e3f;">${otp}</div>
-      </div>
-
-      <p style="font-size: 14px; color: #666; line-height: 1.6; margin: 0 0 24px 0;">
-        This code expires in <strong>10 minutes</strong>. Enter it on the password reset page to set a new 6-digit password.
-      </p>
-
-      <p style="font-size: 13px; color: #999; line-height: 1.6; margin: 0; padding-top: 16px; border-top: 1px solid #eee;">
-        If you didn't request a password reset, you can safely ignore this email. Your password won't change unless someone enters this code.
-      </p>
-
-      <p style="font-size: 12px; color: #bbb; text-align: center; margin-top: 32px;">
-        © ${new Date().getFullYear()} LuckyET
-      </p>
-    </div>
-  `.trim();
-
-  // No API key configured — log the OTP so dev can still test
+async function sendPasswordResetEmail({ to, name, code, expiresInMinutes = 10 }) {
   if (!resend) {
-    console.log("=".repeat(60));
-    console.log("[EmailService] Resend not configured — logging OTP only");
-    console.log(`[EmailService] To:      ${email}`);
-    console.log(`[EmailService] Subject: ${subject}`);
-    console.log(`[EmailService] OTP:     ${otp}`);
-    console.log(`[EmailService] (Set RESEND_API_KEY in .env to send real emails)`);
-    console.log("=".repeat(60));
-    return { ok: true, providerId: "console-log" };
+    throw new Error("RESEND_API_KEY not configured — cannot send OTP email");
   }
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: EMAIL_FROM,
-      to: [email],
-      subject,
-      text,
-      html,
-    });
+  const greeting = name ? `Hi ${name.split(" ")[0]},` : "Hello,";
 
-    if (error) {
-      console.error("[EmailService] Resend error:", error);
-      return { ok: false, error: error.message || "Email send failed" };
-    }
+  return resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: "Your LuckyET password reset code",
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <body style="margin: 0; padding: 0; background: #faf8f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <div style="max-width: 520px; margin: 0 auto; padding: 32px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div style="display: inline-block; width: 48px; height: 48px; background: #f59e0b; border-radius: 10px; line-height: 48px; color: white; font-weight: 800; font-size: 22px;">L</div>
+              <div style="margin-top: 8px; font-weight: 800; color: #111827; font-size: 18px;">LuckyET</div>
+            </div>
 
-    console.log(`[EmailService] OTP sent to ${email} — provider id ${data?.id}`);
-    return { ok: true, providerId: data?.id };
-  } catch (err) {
-    console.error("[EmailService] Exception while sending:", err);
-    return { ok: false, error: err.message || "Email send failed" };
-  }
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 16px; padding: 32px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+              <h1 style="margin: 0 0 12px; font-size: 22px; color: #111827;">Password reset code</h1>
+              <p style="margin: 0 0 18px; color: #374151; font-size: 15px; line-height: 1.5;">
+                ${greeting} Use this one-time code to reset your password:
+              </p>
+
+              <div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 12px; padding: 18px; text-align: center; margin: 24px 0;">
+                <div style="font-size: 34px; font-weight: 800; letter-spacing: 12px; font-family: 'Courier New', monospace; color: #8b1e3f;">${code}</div>
+              </div>
+
+              <p style="margin: 0 0 10px; color: #374151; font-size: 14px; line-height: 1.5;">
+                This code expires in <strong>${expiresInMinutes} minutes</strong>.
+                You have <strong>5 attempts</strong> to enter it correctly before it locks.
+              </p>
+
+              <p style="margin: 16px 0 0; color: #6b7280; font-size: 12px;">
+                Didn't request this? Someone may have typed your phone number by mistake.
+                You can safely ignore this email — your password stays the same.
+              </p>
+            </div>
+
+            <p style="text-align: center; color: #9ca3af; font-size: 11px; margin-top: 16px;">
+              LuckyET · Play right, play responsibly. 18+ only.
+            </p>
+          </div>
+        </body>
+      </html>
+    `,
+  });
 }
 
-module.exports = { sendOTPEmail };
+module.exports = { sendPasswordResetEmail };
