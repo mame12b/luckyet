@@ -8,11 +8,13 @@ import { getStoredPromo } from "../lib/promo";
 
 const METHOD_ICONS = {
   botim: "📱",
-  telebirr: "💸",
   cbe_bank: "🏦",
   awash_bank: "🏦",
   bank_transfer: "🏦",
 };
+
+// Payment methods we don't currently offer — hidden from UI even if server returns them
+const HIDDEN_METHODS = ["telebirr"];
 
 export default function BuyTicket() {
   const { t } = useTranslation();
@@ -31,7 +33,7 @@ export default function BuyTicket() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Load draw + payment accounts
+  // Load draw + payment accounts (filtering hidden methods)
   useEffect(() => {
     if (!user) { nav(`/login?redirect=/draws/${slug}/buy`); return; }
     const country = user?.country || "AE";
@@ -41,8 +43,10 @@ export default function BuyTicket() {
     ])
       .then(([drawRes, methodsRes]) => {
         setDraw(drawRes.data.draw);
-        const accounts = methodsRes.data.paymentAccounts || methodsRes.data.accounts || [];
-        setMethods(accounts.filter(a => a.isActive !== false));
+        const accounts = (methodsRes.data.paymentAccounts || methodsRes.data.accounts || [])
+          .filter(a => a.isActive !== false)
+          .filter(a => !HIDDEN_METHODS.includes(a.method));
+        setMethods(accounts);
         const recommended = accounts.find(a => a.recommended);
         if (recommended) setMethod(recommended.method);
         else if (accounts.length > 0) setMethod(accounts[0].method);
@@ -134,16 +138,21 @@ export default function BuyTicket() {
   return (
     <div className="bg-surface min-h-[80vh]">
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10">
-        {/* Header */}
-        <div className="mb-4 sm:mb-6">
-          <Link to={`/draws/${slug}`} className="text-xs text-text-muted hover:text-burgundy inline-flex items-center gap-1 font-semibold mb-2">
+        {/* Back link — hidden on success step (no going back after submit) */}
+        {step !== 3 && (
+          <Link
+            to={`/draws/${slug}`}
+            className="text-xs text-text-muted hover:text-burgundy inline-flex items-center gap-1 font-semibold mb-3"
+          >
             {t("buy.back")}
           </Link>
-          <div className="text-xs text-burgundy font-semibold mb-0.5">{draw.title}</div>
-          <h1 className="text-xl sm:text-2xl font-extrabold">{draw.prizes?.[0]?.name || draw.prizeName}</h1>
-        </div>
+        )}
 
-        <Stepper step={step} />
+        {/* Persistent draw context — visible on steps 1 & 2, hidden on success */}
+        {step !== 3 && <DrawContext draw={draw} />}
+
+        {/* Step indicator (labels now always visible) */}
+        {step !== 3 && <Stepper step={step} />}
 
         {/* === STEP 1: Order === */}
         {step === 1 && (
@@ -153,7 +162,8 @@ export default function BuyTicket() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-12 h-12 bg-white border border-border rounded-lg text-2xl font-bold hover:border-brand active:scale-95 transition">−</button>
+                  className="w-12 h-12 bg-white border border-border rounded-lg text-2xl font-bold hover:border-brand active:scale-95 transition"
+                >−</button>
                 <input
                   type="number"
                   min="1"
@@ -164,12 +174,22 @@ export default function BuyTicket() {
                 />
                 <button
                   onClick={() => setQuantity(Math.min(50, quantity + 1))}
-                  className="w-12 h-12 bg-white border border-border rounded-lg text-2xl font-bold hover:border-brand active:scale-95 transition">+</button>
+                  className="w-12 h-12 bg-white border border-border rounded-lg text-2xl font-bold hover:border-brand active:scale-95 transition"
+                >+</button>
               </div>
+
+              {/* Inline price math — no more hidden subtotal */}
+              <div className="mt-3 pt-3 border-t border-border text-center text-sm">
+                <span className="text-text-muted">{quantity} × </span>
+                <span className="font-bold">{draw.ticketPriceETB.toLocaleString()} ETB</span>
+                <span className="text-text-muted"> = </span>
+                <span className="font-extrabold text-burgundy">{subtotalETB.toLocaleString()} ETB</span>
+              </div>
+
               <p className="text-[11px] text-text-muted mt-2 text-center">{t("buy.step1.maxNote")}</p>
             </Card>
 
-            {/* Payment method */}
+            {/* Payment method — selected expands with next-step preview */}
             <Card title={t("buy.step1.methodTitle")}>
               <div className="space-y-2">
                 {methods.length === 0 ? (
@@ -184,22 +204,39 @@ export default function BuyTicket() {
                       key={m.method}
                       type="button"
                       onClick={() => setMethod(m.method)}
-                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg border-2 transition text-left ${
+                      className={`w-full block px-3 py-3 rounded-lg border-2 transition text-left ${
                         selected ? "border-brand bg-brand-light/40" : "border-border bg-white hover:border-border-strong"
-                      }`}>
-                      <div className="text-2xl flex-shrink-0">{icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <div className="font-bold text-sm">{label}</div>
-                          {m.recommended && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-success bg-success-light px-1.5 py-0.5 rounded">
-                              {t("buy.step1.forYou")}
-                            </span>
-                          )}
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl flex-shrink-0">{icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="font-bold text-sm">{label}</div>
+                            {m.recommended && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-success bg-success-light px-1.5 py-0.5 rounded">
+                                {t("buy.step1.forYou")}
+                              </span>
+                            )}
+                          </div>
+                          {subtitle && <div className="text-xs text-text-muted">{subtitle}</div>}
                         </div>
-                        <div className="text-xs text-text-muted">{subtitle}</div>
+                        {selected && <span className="text-brand text-xl flex-shrink-0">✓</span>}
                       </div>
-                      {selected && <span className="text-brand text-xl flex-shrink-0">✓</span>}
+
+                      {/* Selected method expands with details */}
+                      {selected && (
+                        <div className="mt-3 pt-3 border-t border-brand/20 text-xs text-text-muted space-y-1.5">
+                          <div className="flex items-start gap-2">
+                            <span className="flex-shrink-0">⏱</span>
+                            <span>{t("buy.step1.processingHint", { defaultValue: "Usually approved within 2–4 hours after receipt review" })}</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <span className="flex-shrink-0">📋</span>
+                            <span>{t("buy.step1.nextStepHint", { defaultValue: "Next step: you'll see the account number to send to + upload your receipt" })}</span>
+                          </div>
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -337,51 +374,245 @@ export default function BuyTicket() {
               <button
                 onClick={() => setStep(1)}
                 disabled={submitting}
-                className="px-4 py-3 bg-white border border-border rounded-lg font-semibold text-sm hover:bg-surface">
+                className="px-4 py-3 bg-white border border-border rounded-lg font-semibold text-sm hover:bg-surface"
+              >
                 {t("buy.step2.back")}
               </button>
               <button
                 onClick={submitReceipt}
                 disabled={submitting || !receipt}
-                className="flex-1 bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-gold disabled:opacity-50 text-base">
+                className="flex-1 bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-gold disabled:opacity-50 text-base"
+              >
                 {submitting ? t("buy.step2.submitting") : t("buy.step2.submit")}
               </button>
             </div>
           </div>
         )}
 
-        {/* === STEP 3: Done === */}
+        {/* === STEP 3: Done — full-bleed celebration === */}
         {step === 3 && (
-          <div className="bg-white border border-border rounded-2xl p-6 sm:p-8 text-center">
-            <div className="w-16 h-16 bg-success-light text-success rounded-full mx-auto mb-4 flex items-center justify-center text-3xl">
-              ✓
+          <div className="space-y-4">
+            {/* Hero success card */}
+            <div className="bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-burgundy rounded-3xl p-8 sm:p-12 text-center shadow-2xl relative overflow-hidden">
+              {/* Decorative sparkles in background */}
+              <div className="absolute inset-0 pointer-events-none opacity-30">
+                <div className="absolute top-6 left-6 text-2xl">✨</div>
+                <div className="absolute top-10 right-10 text-xl">🎉</div>
+                <div className="absolute bottom-8 left-12 text-xl">🎊</div>
+                <div className="absolute bottom-6 right-6 text-2xl">✨</div>
+                <div className="absolute top-1/2 left-4 text-lg">⭐</div>
+                <div className="absolute top-1/3 right-6 text-lg">⭐</div>
+              </div>
+
+              <div className="relative">
+                {/* Big checkmark */}
+                <div className="w-24 h-24 bg-white rounded-full mx-auto mb-5 flex items-center justify-center text-5xl shadow-lg ring-4 ring-white/30">
+                  <span className="text-burgundy">✓</span>
+                </div>
+
+                <h2 className="text-3xl sm:text-4xl font-extrabold mb-3">
+                  {t("buy.step3.title")}
+                </h2>
+                <p className="text-burgundy/80 text-base sm:text-lg leading-relaxed max-w-md mx-auto mb-6">
+                  {t("buy.step3.bodyPart1")}{" "}
+                  <strong>{t("buy.step3.bodyHours")}</strong>
+                  {t("buy.step3.bodyPart2")}{" "}
+                  <strong>{t("buy.step3.bodyMyTickets")}</strong>
+                  {t("buy.step3.bodyPart3")}
+                </p>
+
+                {/* Reference code */}
+                <div className="bg-white/40 backdrop-blur rounded-2xl p-4 mb-6 max-w-xs mx-auto border-2 border-white/60">
+                  <div className="text-[10px] uppercase tracking-[0.2em] font-bold mb-1 text-burgundy/70">
+                    {t("buy.step3.reference")}
+                  </div>
+                  <div className="font-mono font-extrabold text-2xl text-burgundy">
+                    {payment.referenceCode}
+                  </div>
+                  <div className="text-xs text-burgundy/70 mt-1.5">
+                    {t("buy.step3.saveTip")}
+                  </div>
+                </div>
+
+                {/* CTAs */}
+                <div className="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto">
+                  <Link
+                    to="/my-payments"
+                    className="flex-1 bg-burgundy text-white font-bold py-3.5 rounded-lg hover:bg-burgundy-dark transition text-sm shadow-md"
+                  >
+                    {t("buy.step3.viewMyPayments")}
+                  </Link>
+                  <Link
+                    to="/draws"
+                    className="flex-1 bg-white/80 backdrop-blur border border-burgundy/30 text-burgundy font-semibold py-3.5 rounded-lg hover:bg-white transition text-sm"
+                  >
+                    {t("buy.step3.browseMore")}
+                  </Link>
+                </div>
+              </div>
             </div>
-            <h2 className="text-2xl font-extrabold mb-2">{t("buy.step3.title")}</h2>
-            <p className="text-text-muted text-sm leading-relaxed mb-5">
-              {t("buy.step3.bodyPart1")}{" "}
-              <strong className="text-text">{t("buy.step3.bodyHours")}</strong>
-              {t("buy.step3.bodyPart2")}{" "}
-              <strong className="text-text">{t("buy.step3.bodyMyTickets")}</strong>
-              {t("buy.step3.bodyPart3")}
-            </p>
-            <div className="bg-surface border border-border rounded-lg p-4 mb-5 text-left">
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t("buy.step3.reference")}</div>
-              <div className="font-mono font-bold">{payment.referenceCode}</div>
-              <div className="text-xs text-text-muted mt-1">{t("buy.step3.saveTip")}</div>
+
+            {/* What's next timeline */}
+            <div className="bg-white border border-border rounded-2xl p-5 sm:p-6">
+              <h3 className="font-bold text-sm mb-4 uppercase tracking-wider text-text-muted">
+                {t("buy.step3.whatsNext", { defaultValue: "What's next?" })}
+              </h3>
+              <ol className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-7 h-7 bg-brand-light text-brand-dark rounded-full flex items-center justify-center font-bold text-sm">1</span>
+                  <div className="flex-1 pt-0.5">
+                    <div className="font-semibold text-sm">
+                      {t("buy.step3.next1Title", { defaultValue: "We verify your transfer" })}
+                    </div>
+                    <div className="text-xs text-text-muted mt-0.5">
+                      {t("buy.step3.next1Body", { defaultValue: "Usually within 2–4 hours during business hours" })}
+                    </div>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-7 h-7 bg-brand-light text-brand-dark rounded-full flex items-center justify-center font-bold text-sm">2</span>
+                  <div className="flex-1 pt-0.5">
+                    <div className="font-semibold text-sm">
+                      {t("buy.step3.next2Title", { defaultValue: "Your quantum tickets are generated" })}
+                    </div>
+                    <div className="text-xs text-text-muted mt-0.5">
+                      {t("buy.step3.next2Body", { defaultValue: "Each with a unique QR code, viewable in My Tickets" })}
+                    </div>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-7 h-7 bg-brand-light text-brand-dark rounded-full flex items-center justify-center font-bold text-sm">3</span>
+                  <div className="flex-1 pt-0.5">
+                    <div className="font-semibold text-sm">
+                      {t("buy.step3.next3Title", { defaultValue: "Wait for the draw" })}
+                    </div>
+                    <div className="text-xs text-text-muted mt-0.5">
+                      {t("buy.step3.next3Body", { defaultValue: "Winners are announced live and contacted via WhatsApp" })}
+                    </div>
+                  </div>
+                </li>
+              </ol>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Link to="/my-payments" className="flex-1 bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition text-sm">
-                {t("buy.step3.viewMyPayments")}
-              </Link>
-              <Link to="/draws" className="flex-1 bg-white border border-border text-text font-semibold py-3 rounded-lg hover:bg-surface text-sm">
-                {t("buy.step3.browseMore")}
-              </Link>
+
+            {/* You entered — reinforces what they bought into */}
+            <div className="bg-burgundy/5 border border-burgundy/20 rounded-2xl p-5">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-burgundy font-bold mb-2">
+                {t("buy.step3.youEntered", { defaultValue: "You entered" })}
+              </div>
+              <div className="font-extrabold text-burgundy mb-3">{draw.title}</div>
+              <div className="space-y-1 text-sm">
+                {draw.prizes?.slice(0, 3).map((prize, i) => {
+                  const medals = ["🥇", "🥈", "🥉"];
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <span>{medals[i]}</span>
+                      <span className="text-text-muted">{prize.name || prize.title}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
       </div>
     </div>
   );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   DrawContext — persistent header showing prizes + countdown
+   (visible across all 3 steps so the player never loses sight
+    of what they're buying into)
+───────────────────────────────────────────────────────────── */
+function DrawContext({ draw }) {
+  const { t } = useTranslation();
+  const [timeLeft, setTimeLeft] = useState(() => computeTimeLeft(draw.drawDate));
+
+  useEffect(() => {
+    if (!draw.drawDate) return;
+    const tid = setInterval(() => setTimeLeft(computeTimeLeft(draw.drawDate)), 1000);
+    return () => clearInterval(tid);
+  }, [draw.drawDate]);
+
+  const medals = ["🥇", "🥈", "🥉", "🏅"];
+  const prizes = draw.prizes?.slice(0, 4) || [];
+
+  return (
+    <div className="bg-gradient-to-br from-burgundy to-burgundy-dark text-white rounded-2xl p-4 sm:p-5 mb-5 shadow-lg relative overflow-hidden">
+      {/* gold corner accent */}
+      <div
+        className="absolute top-0 right-0 w-24 h-24 pointer-events-none"
+        style={{ background: "radial-gradient(circle at top right, rgba(245,158,11,0.25) 0%, transparent 70%)" }}
+      />
+
+      <div className="flex items-start justify-between gap-3 mb-3 relative">
+        <div className="min-w-0">
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300">
+            {draw.title}
+          </div>
+          <div className="text-xs text-white/70 mt-1">
+            {t("buy.context.ticketPrice", {
+              defaultValue: "{{price}} ETB per ticket",
+              price: draw.ticketPriceETB.toLocaleString(),
+            })}
+          </div>
+        </div>
+
+        {timeLeft && !timeLeft.expired && (
+          <div className="text-right flex-shrink-0 bg-white/10 backdrop-blur rounded-lg px-3 py-1.5">
+            <div className="text-[9px] uppercase tracking-wider opacity-70">
+              {t("buy.context.closesIn", { defaultValue: "Closes in" })}
+            </div>
+            <div className="text-sm font-extrabold font-mono">
+              {timeLeft.days}d {String(timeLeft.hours).padStart(2, "0")}h {String(timeLeft.minutes).padStart(2, "0")}m
+            </div>
+          </div>
+        )}
+
+        {timeLeft && timeLeft.expired && (
+          <div className="text-right flex-shrink-0 bg-danger/30 rounded-lg px-3 py-1.5">
+            <div className="text-xs font-bold uppercase">
+              {t("buy.context.closed", { defaultValue: "Closed" })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {prizes.length > 0 && (
+        <div className="space-y-1.5 text-sm relative">
+          {prizes.map((prize, i) => {
+            const amount = prize.prizeAmount ?? prize.value;
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <span className="flex-shrink-0 text-base">{medals[i]}</span>
+                <span className="font-semibold truncate flex-1">{prize.name || prize.title}</span>
+                {amount && (
+                  <span className="text-amber-300 text-xs font-bold flex-shrink-0">
+                    {amount.toLocaleString()} ETB
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function computeTimeLeft(drawDate) {
+  if (!drawDate) return null;
+  const now = Date.now();
+  const target = new Date(drawDate).getTime();
+  const diff = target - now;
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+    expired: false,
+  };
 }
 
 function Card({ title, children }) {
@@ -393,6 +624,9 @@ function Card({ title, children }) {
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Stepper — labels now visible on mobile too (was hidden sm:inline)
+───────────────────────────────────────────────────────────── */
 function Stepper({ step }) {
   const { t } = useTranslation();
   const steps = [
@@ -401,19 +635,25 @@ function Stepper({ step }) {
     { n: 3, label: t("buy.stepper.done") },
   ];
   return (
-    <div className="flex items-center justify-center gap-2 mb-5">
+    <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-5">
       {steps.map((s, i) => (
-        <div key={s.n} className="flex items-center gap-2">
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition ${
-            step >= s.n ? "bg-brand text-white" : "bg-surface-2 text-text-muted"
-          }`}>
+        <div key={s.n} className="flex items-center gap-1.5 sm:gap-2">
+          <div
+            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition ${
+              step >= s.n ? "bg-brand text-white" : "bg-surface-2 text-text-muted"
+            }`}
+          >
             {step > s.n ? "✓" : s.n}
           </div>
-          <span className={`text-xs font-semibold hidden sm:inline ${step >= s.n ? "text-text" : "text-text-muted"}`}>
+          <span
+            className={`text-[10px] sm:text-xs font-semibold ${
+              step >= s.n ? "text-text" : "text-text-muted"
+            }`}
+          >
             {s.label}
           </span>
           {i < steps.length - 1 && (
-            <div className={`w-8 sm:w-12 h-0.5 ${step > s.n ? "bg-brand" : "bg-surface-2"}`}></div>
+            <div className={`w-4 sm:w-12 h-0.5 ${step > s.n ? "bg-brand" : "bg-surface-2"}`}></div>
           )}
         </div>
       ))}

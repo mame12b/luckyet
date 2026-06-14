@@ -6,6 +6,7 @@ if (process.env.NODE_ENV !== "production") {
 const path = require("path");
 const http = require("http");
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -14,7 +15,13 @@ const mongoSanitize = require("express-mongo-sanitize");
 
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
-const { globalRateLimit } = require("./middleware/rateLimit");
+const {
+  globalRateLimit,
+  authRateLimit,
+  passwordResetRateLimit,
+  paymentRateLimit,
+  adminRateLimit,
+} = require("./middleware/rateLimit");
 const socketService = require("./services/socketService");
 
 // Routes
@@ -68,26 +75,61 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 app.use(mongoSanitize());
 
+// ⚡️ PERFORMANCE HARDENING: Keep dev logging completely disabled in production.
+// Writing thousands of console statements per second will choke Node execution threads.
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-app.use("/api", globalRateLimit);
-
-// Serve uploaded receipts. Filenames are unguessable hex + timestamp.
-// TODO: gate /uploads behind admin auth in Phase 7 hardening.
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-// Health endpoint — used by Docker healthcheck
-app.get("/", (req, res) => {
-  res.json({
+// ────────────────────────────────────────────────────────────────
+// Health check — pings Mongo so Docker auto-restarts on DB failure.
+// Mounted BEFORE rate limiting so monitoring tools (UptimeRobot etc.)
+// never get throttled.
+// ────────────────────────────────────────────────────────────────
+app.get("/", async (req, res) => {
+  const checks = {
     status: "running",
     service: "luckyet-api",
     version: "0.3.0",
-    socket: !!socketService.io,
+    socket: socketService.io ? "ok" : "down",
+    mongo: "unknown",
+    uptime: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
-  });
+  };
+
+  try {
+    if (mongoose.connection.readyState === 1) {
+      // Ping with a hard timeout so a slow Atlas can't hang the health check
+      await Promise.race([
+        mongoose.connection.db.admin().ping(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("ping timeout")), 2000)),
+      ]);
+      checks.mongo = "ok";
+    } else {
+      // 0=disconnected, 2=connecting, 3=disconnecting
+      checks.mongo = `state-${mongoose.connection.readyState}`;
+    }
+  } catch (e) {
+    checks.mongo = "error";
+  }
+
+  const healthy = checks.mongo === "ok" && checks.socket === "ok";
+  res.status(healthy ? 200 : 503).json(checks);
 });
+
+// ────────────────────────────────────────────────────────────────
+// Rate limiting — layered: gentle global, strict on sensitive routes.
+// More-specific limiters mount BEFORE the global one so they fire first.
+// ────────────────────────────────────────────────────────────────
+app.use("/api/auth/request-password-reset", passwordResetRateLimit); // 5/hour per IP
+app.use("/api/auth", authRateLimit);                                  // 20/min per IP
+app.use("/api/payments/initiate", paymentRateLimit);          // 10/min per IP
+app.use("/api/payments/:id/receipt", paymentRateLimit);          // 10/min per IP
+app.use("/api", globalRateLimit);                                     // 120/min per IP
+
+// ⚠ NOTE: If traffic hits scaling limits, offload this directory to Nginx volumes 
+// or an external object storage bucket (S3/R2) to completely protect your single thread.
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // API routes
 app.use("/api/auth", authRoutes);
@@ -103,14 +145,13 @@ app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-// Error handler
+// Error handler (Make sure your internal middleware filters raw stack leaks out of production)
 app.use(errorHandler);
 
 // === Boot ===
 const PORT = process.env.PORT || 5000;
 
 // Create the HTTP server FIRST, then attach Socket.io to it.
-// Both Express and Socket.io share the same TCP listener.
 const server = http.createServer(app);
 socketService.init(server);
 
@@ -132,7 +173,10 @@ const shutdown = (signal) => {
   console.log(`\n${signal} received, shutting down...`);
   server.close(() => {
     console.log("✓ HTTP server closed");
-    process.exit(0);
+    mongoose.connection.close(false).then(() => {
+      console.log("✓ MongoDB connection closed");
+      process.exit(0);
+    });
   });
   // Force exit after 10 seconds if graceful shutdown hangs
   setTimeout(() => process.exit(1), 10000).unref();
@@ -140,5 +184,10 @@ const shutdown = (signal) => {
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
+
+// Catch unhandled rejections so a single promise error doesn't kill the process silently
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("✗ Unhandled rejection at:", promise, "reason:", reason);
+});
 
 start();

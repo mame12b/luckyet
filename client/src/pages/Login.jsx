@@ -180,7 +180,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-sm text-text-muted mt-5">
-          {t("auth.login.newToLuckyet")} <Link to="/register" className="text-brand-dark font-semibold hover:underline">{t("auth.login.createAccount")}</Link>
+          {t("auth.login.newToEdilPlay")} <Link to="/register" className="text-brand-dark font-semibold hover:underline">{t("auth.login.createAccount")}</Link>
         </p>
       </div>
     </div>

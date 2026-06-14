@@ -3,7 +3,7 @@ export default function HowItWorks() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 md:py-16">
       <div className="text-xs font-medium text-brand uppercase tracking-wide mb-2">Guide</div>
-      <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">How LuckyET works</h1>
+      <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">How EdilPlay works</h1>
       <p className="text-text-muted text-lg mb-12">
         Built for the diaspora. Powered by real quantum physics. Verified by you.
       </p>
@@ -33,7 +33,7 @@ export default function HowItWorks() {
       <div className="mt-12 bg-brand-light border border-brand/20 rounded-xl p-6">
         <h3 className="font-semibold mb-2">Why quantum randomness?</h3>
         <p className="text-text-muted text-sm leading-relaxed">
-          Traditional random number generators are deterministic — they look random but follow a formula. Quantum randomness comes from physically unpredictable events at the subatomic level. It's the only "true" randomness known to science, and it makes every LuckyET draw mathematically impossible to rig.
+          Traditional random number generators are deterministic — they look random but follow a formula. Quantum randomness comes from physically unpredictable events at the subatomic level. It's the only "true" randomness known to science, and it makes every EdilPlay draw mathematically impossible to rig.
         </p>
       </div>
     </div>

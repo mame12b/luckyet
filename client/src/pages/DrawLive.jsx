@@ -122,8 +122,8 @@ export default function DrawLive() {
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-30 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2 font-bold text-lg">
-          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center text-burgundy font-extrabold">L</div>
-          <span>LuckyET <span className="opacity-60 text-sm font-normal">· Live</span></span>
+          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-lg flex items-center justify-center text-burgundy font-extrabold">E</div>
+          <span>EdilPlay <span className="opacity-60 text-sm font-normal">· Live</span></span>
         </div>
         <button
           onClick={() => setMuted(!muted)}

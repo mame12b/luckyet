@@ -43,7 +43,7 @@ export default function StreamerDashboard() {
           <div className="text-4xl mb-3">🎤</div>
           <h1 className="text-xl font-extrabold mb-2">No promoter profile yet</h1>
           <p className="text-sm text-text-muted mb-4">
-            {error || "You're not registered as a promoter. Contact LuckyET support if you'd like to become one."}
+            {error || "You're not registered as a promoter. Contact EdilPlay support if you'd like to become one."}
           </p>
           <Link to="/dashboard" className="block w-full bg-brand text-white font-bold py-2.5 rounded-md hover:bg-brand-dark text-sm">
             Back to dashboard

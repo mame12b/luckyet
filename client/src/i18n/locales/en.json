@@ -30,7 +30,9 @@
     "support": "Support",
     "playResponsibly": "Play responsibly",
     "ageGate": "18+",
-    "copyright": "© {{year}} LuckyET"
+    "copyright": "© {{year}} EdilPlay. All rights reserved.",
+    "privacyPolicy": "Privacy policy",
+    "termsOfService": "Terms of service"
   },
   "home": {
     "hero": {
@@ -81,12 +83,12 @@
     },
     "qrSection": {
       "eyebrow": "Scan & play",
-      "title": "Take LuckyET with you",
-      "body": "Scan this QR code from any device to open LuckyET. Share it with friends and family — they can buy tickets and check results instantly.",
+      "title": "Take EdilPlay with you",
+      "body": "Scan this QR code from any device to open EdilPlay. Share it with friends and family — they can buy tickets and check results instantly.",
       "browseDraws": "Browse draws →",
       "learnMore": "Learn more",
       "scanTitle": "Scan to play",
-      "scanSubtitle": "Opens LuckyET on your phone"
+      "scanSubtitle": "Opens EdilPlay on your phone"
     },
     "promoBanner": {
       "shoppingWith": "Shopping with",

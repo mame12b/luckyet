@@ -1,4 +1,4 @@
-# LuckyET 🎰
+# EdilPlay 🎰
 
 Quantum-randomized lottery platform for Ethiopian & Eritrean diaspora.
 

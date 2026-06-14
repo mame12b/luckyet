@@ -59,8 +59,8 @@ export default function Layout({ children }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 font-extrabold text-lg sm:text-xl tracking-tight">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center text-white text-base font-extrabold shadow-gold">L</div>
-            <span>LuckyET</span>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center text-white text-base font-extrabold shadow-gold">E</div>
+            <span>EdilPlay</span>
           </Link>
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6 text-sm font-semibold">
@@ -210,8 +210,8 @@ export default function Layout({ children }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-6">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center text-white text-sm font-extrabold">L</div>
-                <span className="font-extrabold">LuckyET</span>
+                <div className="w-8 h-8 bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center text-white text-sm font-extrabold">E</div>
+                <span className="font-extrabold">EdilPlay</span>
               </div>
               <p className="text-white/70 text-xs leading-relaxed">
                 {t("footer.tagline")}

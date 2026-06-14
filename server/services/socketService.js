@@ -5,6 +5,11 @@ let io = null;
 
 function init(httpServer) {
   io = new Server(httpServer, {
+    path: "/socket.io/",
+    transports: ["websocket"],       // ⚡️ Force WebSockets first (Protects Express HTTP routing thread)
+    perMessageDeflate: false,        // 🔴 CRITICAL: Disables frame compression. Saves huge amounts of CPU under load.
+    pingInterval: 15000,             // Keeps mobile connections alive smoothly
+    pingTimeout: 30000,              // Adds a tolerance layer for moving mobile data cells
     cors: {
       origin: [
         process.env.CLIENT_URL,
@@ -16,59 +21,77 @@ function init(httpServer) {
       ].filter(Boolean),
       credentials: true,
     },
-    path: "/socket.io/",
   });
 
+  // 🛡 ADAPTIVE AUTHENTICATION MIDDLEWARE
   io.use((socket, next) => {
     try {
       const token = socket.handshake.auth && socket.handshake.auth.token;
-      if (!token) return next(new Error("auth_required"));
+      
+      // ✅ FIX: If there is no token, don't crash or reject! Treat them as a guest viewer.
+      if (!token) {
+        socket.userId = null;
+        socket.role = "guest";
+        return next();
+      }
+
       const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
       socket.userId = decoded.userId;
       socket.role = decoded.role;
       next();
     } catch (err) {
-      next(new Error("invalid_token"));
+      // If a token was provided but it expired, let them connect as a guest anyway so they can see the live draw
+      socket.userId = null;
+      socket.role = "guest";
+      next();
     }
   });
 
   io.on("connection", (socket) => {
-    console.log("[socket] CONNECT socket=" + socket.id + " userId=" + socket.userId + " role=" + socket.role);
-    socket.join("user:" + socket.userId);
+    // 🧠 MEMORY MANAGEMENT: Drop heavy raw connection headers from active memory loops
+    socket.request = null;
+
+    // Verbose logging only for admin tasks or dev environments to keep I/O channels clear
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[socket] CONNECT ${socket.id} | User: ${socket.userId} | Role: ${socket.role}`);
+    }
+
+    // Only join explicit user rooms if they are authenticated members
+    if (socket.userId) {
+      socket.join("user:" + socket.userId);
+    }
+
+    // Assign privileged admin channels safely
     if (socket.role === "admin" || socket.role === "super_admin") {
       socket.join("admins");
     }
+
     socket.on("disconnect", (reason) => {
-      console.log("[socket] DISCONNECT socket=" + socket.id + " userId=" + socket.userId + " reason=" + reason);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[socket] DISCONNECT ${socket.id} | Reason: ${reason}`);
+      }
     });
   });
 
-  console.log("\u2713 Socket.io initialized");
+  console.log("\u2713 Hardened Socket.io initialized successfully");
   return io;
 }
 
 function emitToUser(userId, event, payload) {
-  if (!io) {
-    console.log("[socket] EMIT-SKIPPED io not ready event=" + event);
-    return;
-  }
+  if (!io || !userId) return;
   const room = "user:" + userId;
-  const roomMap = io.sockets.adapter.rooms.get(room);
-  const size = roomMap ? roomMap.size : 0;
-  console.log("[socket] EMIT " + event + " -> " + room + " (listeners=" + size + ")");
   io.to(room).emit(event, payload);
 }
 
 function emitToAdmins(event, payload) {
   if (!io) return;
-  const roomMap = io.sockets.adapter.rooms.get("admins");
-  const size = roomMap ? roomMap.size : 0;
-  console.log("[socket] EMIT " + event + " -> admins (listeners=" + size + ")");
   io.to("admins").emit(event, payload);
 }
 
 function broadcast(event, payload) {
   if (!io) return;
+  // Use volatile if sending fast-updating visual states (like rapid rolling numbers)
+  // io.volatile.emit(event, payload); 
   io.emit(event, payload);
 }
 

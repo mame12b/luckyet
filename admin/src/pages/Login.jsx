@@ -77,8 +77,8 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 font-semibold text-lg tracking-tight mb-1">
-            <div className="w-8 h-8 bg-brand rounded-md flex items-center justify-center text-white font-bold">L</div>
-            <span>LuckyET</span>
+            <div className="w-8 h-8 bg-brand rounded-md flex items-center justify-center text-white font-bold">E</div>
+            <span>EdilPlay</span>
           </div>
           <div className="text-xs text-text-muted uppercase tracking-wide">Admin Console</div>
         </div>
