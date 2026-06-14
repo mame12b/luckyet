@@ -4,17 +4,20 @@ import { useTranslation } from "react-i18next";
 import api from "../lib/api";
 import { useAuthStore } from "../store/auth";
 
+// `len` is the exact number of digits expected after the country code.
+// Strict validation prevents users from registering with malformed numbers
+// (e.g. +251 + 10 digits — common bug when users include the leading 0).
 const PHONE_CODES = [
-  { code: "+971", country: "AE", flag: "🇦🇪", label: "UAE" },
-  { code: "+966", country: "SA", flag: "🇸🇦", label: "Saudi Arabia" },
-  { code: "+965", country: "KW", flag: "🇰🇼", label: "Kuwait" },
-  { code: "+974", country: "QA", flag: "🇶🇦", label: "Qatar" },
-  { code: "+973", country: "BH", flag: "🇧🇭", label: "Bahrain" },
-  { code: "+968", country: "OM", flag: "🇴🇲", label: "Oman" },
-  { code: "+251", country: "ET", flag: "🇪🇹", label: "Ethiopia" },
-  { code: "+291", country: "ER", flag: "🇪🇷", label: "Eritrea" },
-  { code: "+1",   country: "US", flag: "🇺🇸", label: "USA/Canada" },
-  { code: "+44",  country: "GB", flag: "🇬🇧", label: "UK" },
+  { code: "+971", country: "AE", flag: "🇦🇪", label: "UAE",           len: 9  },
+  { code: "+966", country: "SA", flag: "🇸🇦", label: "Saudi Arabia",  len: 9  },
+  { code: "+965", country: "KW", flag: "🇰🇼", label: "Kuwait",        len: 8  },
+  { code: "+974", country: "QA", flag: "🇶🇦", label: "Qatar",         len: 8  },
+  { code: "+973", country: "BH", flag: "🇧🇭", label: "Bahrain",       len: 8  },
+  { code: "+968", country: "OM", flag: "🇴🇲", label: "Oman",          len: 8  },
+  { code: "+251", country: "ET", flag: "🇪🇹", label: "Ethiopia",      len: 9  },
+  { code: "+291", country: "ER", flag: "🇪🇷", label: "Eritrea",       len: 7  },
+  { code: "+1",   country: "US", flag: "🇺🇸", label: "USA/Canada",    len: 10 },
+  { code: "+44",  country: "GB", flag: "🇬🇧", label: "UK",            len: 10 },
 ];
 
 export default function Register() {
@@ -41,13 +44,44 @@ export default function Register() {
     setForm({ ...form, pin: digits });
   };
 
+  // Sanitize phone input:
+  //  1. Strip all non-digits (handles "+971 50 123 4567" autofill)
+  //  2. If user accidentally typed/pasted the country code, strip it
+  //  3. Strip leading 0 (common in ET: "0912345678" → "912345678")
+  //  4. Clamp to exact length for selected country
+  const updatePhone = (e) => {
+    let digits = e.target.value.replace(/\D/g, "");
+    const codeDigits = phoneCode.code.replace(/\D/g, "");
+    if (digits.startsWith(codeDigits) && digits.length > codeDigits.length) {
+      digits = digits.slice(codeDigits.length);
+    }
+    if (digits.startsWith("0")) digits = digits.slice(1);
+    digits = digits.slice(0, phoneCode.len);
+    setForm({ ...form, phoneNumber: digits });
+  };
+
+  // When switching country, truncate phone if it's longer than new country's max
+  const changeCountry = (e) => {
+    const newCode = PHONE_CODES.find((c) => c.code === e.target.value) || PHONE_CODES[0];
+    setPhoneCode(newCode);
+    if (form.phoneNumber.length > newCode.len) {
+      setForm({ ...form, phoneNumber: form.phoneNumber.slice(0, newCode.len) });
+    }
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     setError("");
 
     const phoneDigits = form.phoneNumber.replace(/\D/g, "");
-    if (phoneDigits.length < 6 || phoneDigits.length > 12) {
-      setError(t("auth.register.errorPhoneLength"));
+    if (phoneDigits.length !== phoneCode.len) {
+      setError(
+        t("auth.register.errorPhoneLength", {
+          defaultValue: "Phone must be exactly {{len}} digits for {{country}}",
+          len: phoneCode.len,
+          country: phoneCode.label,
+        })
+      );
       return;
     }
     if (!/^\d{6}$/.test(form.pin)) {
@@ -131,7 +165,7 @@ export default function Register() {
               <div className="flex gap-2">
                 <select
                   value={phoneCode.code}
-                  onChange={(e) => setPhoneCode(PHONE_CODES.find(c => c.code === e.target.value) || PHONE_CODES[0])}
+                  onChange={changeCountry}
                   className="bg-white border border-border focus:border-brand outline-none rounded-md px-2 py-3 text-sm font-mono w-[88px] flex-shrink-0"
                 >
                   {PHONE_CODES.map(c => (
@@ -141,16 +175,27 @@ export default function Register() {
                 <input
                   type="tel"
                   inputMode="numeric"
+                  pattern="\d*"
                   value={form.phoneNumber}
-                  onChange={update("phoneNumber")}
+                  onChange={updatePhone}
                   required
-                  placeholder={t("auth.common.phonePlaceholder")}
+                  placeholder={t("auth.common.phonePlaceholder", {
+                    defaultValue: `${phoneCode.len} digits`,
+                  })}
                   autoComplete="tel-national"
                   className="flex-1 min-w-0 bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-3 text-sm"
                 />
               </div>
-              <p className="text-[10px] text-text-faint mt-1">
-                {t("auth.common.selectedCountry", { flag: phoneCode.flag, label: phoneCode.label })}
+              <p className="text-[10px] text-text-faint mt-1 flex items-center justify-between">
+                <span>
+                  {t("auth.common.selectedCountry", { flag: phoneCode.flag, label: phoneCode.label })}
+                  {" · "}{phoneCode.len} digits
+                </span>
+                {form.phoneNumber && (
+                  <span className={form.phoneNumber.length === phoneCode.len ? "text-success font-semibold" : "text-text-muted"}>
+                    {form.phoneNumber.length}/{phoneCode.len}
+                  </span>
+                )}
               </p>
             </div>
 
