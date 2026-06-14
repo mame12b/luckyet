@@ -133,7 +133,7 @@
       "signIn": "Sign in",
       "signingIn": "Signing in...",
       "forgotPassword": "Forgot password?",
-      "newToLuckyet": "New to LuckyET?",
+      "newToLuckyet": "New to EdilPlay?",
       "createAccount": "Create account",
       "loginFailed": "Login failed",
       "attemptsRemaining_one": "⚠️ {{count}} attempt remaining before account is locked",
@@ -141,7 +141,7 @@
     },
     "register": {
       "title": "Create account",
-      "subtitle": "Join LuckyET in under a minute",
+      "subtitle": "Join EdilPlay in under a minute",
       "fullName": "Full name",
       "fullNamePlaceholder": "Asrat Belay",
       "email": "Email",

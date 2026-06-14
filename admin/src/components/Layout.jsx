@@ -98,9 +98,9 @@ useEffect(() => {
         {/* Logo + close */}
         <div className="p-4 border-b border-border flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand rounded-md flex items-center justify-center text-white font-bold">L</div>
+            <div className="w-8 h-8 bg-brand rounded-md flex items-center justify-center text-white font-bold">E</div>
             <div>
-              <div className="font-semibold text-sm leading-tight">LuckyET</div>
+              <div className="font-semibold text-sm leading-tight">EdilPlay</div>
               <div className="text-[10px] text-text-muted uppercase tracking-wider">Admin console</div>
             </div>
           </Link>
@@ -177,7 +177,7 @@ useEffect(() => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
-          <div className="font-semibold text-sm md:hidden">LuckyET · Admin</div>
+          <div className="font-semibold text-sm md:hidden">EdilPlay · Admin</div>
           <div className="w-7 md:hidden"></div>
         </header>
 

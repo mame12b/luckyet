@@ -87,9 +87,13 @@ export default function Register() {
   };
 
   return (
-    <div className="bg-surface min-h-[80vh] flex items-start justify-center px-4 py-8 sm:py-12">
-      <div className="w-full max-w-md">
-        <div className="bg-white border border-border rounded-2xl p-5 sm:p-7 shadow-card">
+    // KEY MOBILE FIXES:
+    // - px-3 sm:px-6   : tighter horizontal padding on phones (saves 8px each side)
+    // - max-w-none on mobile, max-w-md from sm: up — form fills phone width, caps on tablet+
+    // - p-4 sm:p-7     : tighter internal card padding on phones
+    <div className="bg-surface min-h-[80vh] flex items-start justify-center px-3 sm:px-6 py-6 sm:py-12">
+      <div className="w-full max-w-none sm:max-w-md">
+        <div className="bg-white border border-border rounded-2xl p-4 sm:p-7 shadow-card">
           <h1 className="text-2xl font-extrabold tracking-tight mb-1">{t("auth.register.title")}</h1>
           <p className="text-text-muted text-sm mb-5">{t("auth.register.subtitle")}</p>
 
@@ -103,7 +107,8 @@ export default function Register() {
                 required
                 minLength="2"
                 placeholder={t("auth.register.fullNamePlaceholder")}
-                className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
+                autoComplete="name"
+                className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-3 text-sm"
               />
             </div>
 
@@ -115,7 +120,9 @@ export default function Register() {
                 onChange={update("email")}
                 required
                 placeholder={t("auth.register.emailPlaceholder")}
-                className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
+                autoComplete="email"
+                inputMode="email"
+                className="w-full bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-3 text-sm"
               />
             </div>
 
@@ -125,7 +132,7 @@ export default function Register() {
                 <select
                   value={phoneCode.code}
                   onChange={(e) => setPhoneCode(PHONE_CODES.find(c => c.code === e.target.value) || PHONE_CODES[0])}
-                  className="bg-white border border-border focus:border-brand outline-none rounded-md px-2 py-2.5 text-sm font-mono w-28"
+                  className="bg-white border border-border focus:border-brand outline-none rounded-md px-2 py-3 text-sm font-mono w-[88px] flex-shrink-0"
                 >
                   {PHONE_CODES.map(c => (
                     <option key={c.country} value={c.code}>{c.flag} {c.code}</option>
@@ -138,7 +145,8 @@ export default function Register() {
                   onChange={update("phoneNumber")}
                   required
                   placeholder={t("auth.common.phonePlaceholder")}
-                  className="flex-1 bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-2.5 text-sm"
+                  autoComplete="tel-national"
+                  className="flex-1 min-w-0 bg-white border border-border focus:border-brand focus:ring-2 focus:ring-brand/10 outline-none rounded-md px-3 py-3 text-sm"
                 />
               </div>
               <p className="text-[10px] text-text-faint mt-1">
@@ -157,9 +165,12 @@ export default function Register() {
                 onChange={updatePin}
                 required
                 placeholder="● ● ● ● ● ●"
-                className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-2.5 text-lg tracking-[0.4em] text-center font-mono"
+                autoComplete="new-password"
+                className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-3 text-lg tracking-[0.4em] text-center font-mono"
               />
-              <p className="text-[10px] text-text-faint mt-1">{t("auth.register.passwordHint")}</p>
+              <p className="text-[10px] text-text-faint mt-1">
+                {t("auth.register.passwordHint")} <span className="text-text-muted">· {form.pin.length}/6</span>
+              </p>
             </div>
 
             <div>
@@ -171,7 +182,8 @@ export default function Register() {
                 value={form.promoCode}
                 onChange={update("promoCode")}
                 placeholder={t("auth.register.promoPlaceholder")}
-                className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-2.5 text-sm font-mono uppercase"
+                autoComplete="off"
+                className="w-full bg-white border border-border focus:border-brand outline-none rounded-md px-3 py-3 text-sm font-mono uppercase"
               />
             </div>
 
@@ -180,7 +192,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-gold disabled:opacity-50 text-sm"
+              className="w-full bg-brand text-white font-bold py-3.5 rounded-lg hover:bg-brand-dark transition shadow-gold disabled:opacity-50 text-base"
             >
               {loading ? t("auth.register.creating") : t("auth.register.createButton")}
             </button>

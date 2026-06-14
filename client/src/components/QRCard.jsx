@@ -7,7 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 export default function QRCard({
   url,
   title = "Scan to play",
-  subtitle = "Open LuckyET on your phone",
+  subtitle = "Open EdilPlay on your phone",
   size = 140,
 }) {
   const target = url || `${typeof window !== "undefined" ? window.location.origin : ""}/draws`;

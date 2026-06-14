@@ -81,12 +81,12 @@
     },
     "qrSection": {
       "eyebrow": "ይቃኙ እና ይጫወቱ",
-      "title": "LuckyETን ይዘው ይውጡ",
-      "body": "ይህን QR ኮድ ከማንኛውም መሣሪያ ይቃኙና LuckyETን ይክፈቱ። ለጓደኞችዎ እና ለቤተሰብዎ ያጋሩ — ቲኬት ይገዛሉ ውጤቶችን በፍጥነት ያያሉ።",
+      "title": "EdilPlayን ይዘው ይውጡ",
+      "body": "ይህን QR ኮድ ከማንኛውም መሣሪያ ይቃኙና EdilPlayን ይክፈቱ። ለጓደኞችዎ እና ለቤተሰብዎ ያጋሩ — ቲኬት ይገዛሉ ውጤቶችን በፍጥነት ያያሉ።",
       "browseDraws": "ድልድሎችን ይመልከቱ →",
       "learnMore": "የበለጠ ይወቁ",
       "scanTitle": "ይቃኙና ይጫወቱ",
-      "scanSubtitle": "LuckyETን በስልክዎ ይከፍታል"
+      "scanSubtitle": "EdilPlayን በስልክዎ ይከፍታል"
     },
     "promoBanner": {
       "shoppingWith": "በ",
@@ -131,7 +131,7 @@
       "signIn": "ግባ",
       "signingIn": "በመግባት ላይ...",
       "forgotPassword": "የይለፍ ቃል ረሳዎት?",
-      "newToLuckyet": "LuckyET አዲስ ነዎት?",
+      "newToLuckyet": "EdilPlay አዲስ ነዎት?",
       "createAccount": "መለያ ይክፈቱ",
       "loginFailed": "መግባት አልተሳካም",
       "attemptsRemaining_one": "⚠️ መለያው ከመቆለፉ በፊት {{count}} ሙከራ ቀርቷል",
@@ -139,7 +139,7 @@
     },
     "register": {
       "title": "መለያ ይክፈቱ",
-      "subtitle": "በአንድ ደቂቃ ውስጥ ወደ LuckyET ይቀላቀሉ",
+      "subtitle": "በአንድ ደቂቃ ውስጥ ወደ EdilPlay ይቀላቀሉ",
       "fullName": "ሙሉ ስም",
       "fullNamePlaceholder": "አስራት በላይ",
       "email": "ኢሜይል",
@@ -206,7 +206,7 @@
   "dashboard": {
     "eyebrow": "ዳሽቦርድ",
     "welcomeBack": "እንኳን ደህና መጡ፣ {{name}}",
-    "subtitle": "የ LuckyET እንቅስቃሴዎ ፈጣን እይታ።",
+    "subtitle": "የ EdilPlay እንቅስቃሴዎ ፈጣን እይታ።",
     "stats": {
       "activeTickets": "ንቁ ቲኬቶች",
       "activeTicketsHint": "ኳንተም-የተረጋገጡ ግቤቶች",

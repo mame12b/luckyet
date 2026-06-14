@@ -35,14 +35,14 @@ export default function PromoterQR({ promoCode, playerOrigin }) {
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
-    a.download = `luckyet-promo-${promoCode.toLowerCase()}.png`;
+    a.download = `EdilPlay-promo-${promoCode.toLowerCase()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
   const shareWhatsApp = () => {
-    const text = `Hey! Buy a LuckyET ticket using my link — quantum-verified lotteries from the diaspora:\n\n${targetUrl}`;
+    const text = `Hey! Buy a EdilPlay ticket using my link — quantum-verified lotteries from the diaspora:\n\n${targetUrl}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank", "noopener");
   };
@@ -52,7 +52,7 @@ export default function PromoterQR({ promoCode, playerOrigin }) {
       <header className="mb-3">
         <h2 className="font-bold text-sm">Promoter QR code</h2>
         <p className="text-[11px] text-text-muted">
-          Send this to the promoter. Anyone who scans it will land on LuckyET with{" "}
+          Send this to the promoter. Anyone who scans it will land on EdilPlay with{" "}
           <span className="font-mono font-bold">{promoCode}</span> applied automatically.
         </p>
       </header>
